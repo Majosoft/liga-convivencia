@@ -9,6 +9,7 @@ if (!defined('ABSPATH')) { exit; }
 class LC_REST_Gomets {
 
     public static function register() {
+        self::register_horario();
         register_rest_route('liga-creus/v1', '/gomets', [
             'methods'  => 'GET',
             'callback' => [__CLASS__, 'dia'],
@@ -25,6 +26,30 @@ class LC_REST_Gomets {
                 'color'     => ['required' => true, 'type' => 'string'],
             ],
         ]);
+    }
+
+    public static function register_horario() {
+        // Su horario de la semana entero, para comprobarlo (ver ui-gomets.js).
+        register_rest_route('liga-creus/v1', '/gomets/horario', [
+            'methods'  => 'GET',
+            'callback' => [__CLASS__, 'horario'],
+            'permission_callback' => ['LC_Auth', 'solo_profesor'],
+        ]);
+    }
+
+    public static function horario(\WP_REST_Request $req) {
+        $prof = self::profesor($req);
+        $sesiones = array_map(function($s) {
+            return [
+                'dia' => (int) $s['dia'],
+                'hora' => (int) $s['hora'],
+                'materia' => $s['materia'],
+                'grupo' => $s['grupo'],
+                'clases' => array_values(array_filter(explode(',', $s['clases']))),
+                'gomet' => (bool) $s['cuenta'] && $s['clases'] !== '',
+            ];
+        }, LC_Horario::horario_semana($prof['iniciales']));
+        return ['ok' => true, 'profesor' => ['iniciales' => $prof['iniciales'], 'nombre' => $prof['nombre']], 'sesiones' => $sesiones];
     }
 
     private static function profesor($req) {

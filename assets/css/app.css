@@ -481,3 +481,25 @@
 @media (max-width: 480px){
   .lc-gomet-btn{ font-size: 13px; padding: 0 4px; }
 }
+
+/* "Mi horario de la semana" dentro de Mis gomets (1.0) */
+.lc-mi-horario{
+  margin: var(--lc-space-2) 0 var(--lc-space-4);
+  padding: var(--lc-space-3);
+  border: 1px solid var(--lc-color-neutral-200);
+  border-radius: var(--lc-radius-md);
+  background: var(--lc-color-neutral-50);
+}
+.lc-mi-horario summary{ cursor: pointer; font-weight: 600; color: var(--lc-color-neutral-800); min-height: 28px; }
+.lc-mi-horario summary:focus-visible{ outline: 3px solid var(--lc-color-primary); outline-offset: 2px; }
+.lc-hz-scroll{ overflow-x: auto; margin-top: var(--lc-space-2); }
+.lc-hz{ width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; min-width: 420px; }
+.lc-hz th, .lc-hz td{ border: 1px solid var(--lc-color-neutral-200); padding: 4px; vertical-align: top; background: var(--lc-color-surface); }
+.lc-hz thead th, .lc-hz tbody th{ background: var(--lc-color-neutral-100); color: var(--lc-color-neutral-600); text-align: center; }
+.lc-hz tbody th{ width: 34px; }
+.lc-hz abbr{ text-decoration: none; }
+.lc-hz .is-hoy{ background: var(--lc-color-primary-light); }
+.lc-hz thead th.is-hoy{ color: var(--lc-color-primary); }
+.lc-hz-sesion + .lc-hz-sesion{ margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--lc-color-neutral-200); }
+.lc-hz-sesion.is-apoyo{ color: var(--lc-color-neutral-500); }
+.lc-hz-nota{ display: block; font-size: 11px; color: var(--lc-color-neutral-500); }

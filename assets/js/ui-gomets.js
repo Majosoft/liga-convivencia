@@ -38,6 +38,12 @@ function uiGomets(){
   return `
     <div>
       <h4 class="lc-module-title">Semáforo – mis clases</h4>
+      <details class="lc-mi-horario" open>
+        <summary>Mi horario de la semana</summary>
+        <div id="gm-horario"><p class="lc-meta">Cargando…</p></div>
+        <p class="lc-meta">Comprueba que está bien: es el horario con el que se reparten tus gomets.
+          Si algo no cuadra, avisa a quien administra la Liga.</p>
+      </details>
       <div class="lc-gomets-dia">
         <button type="button" class="lc-btn lc-btn-secondary lc-btn-sm" id="gm-prev" aria-label="Día anterior">‹</button>
         <input type="date" id="gm-fecha" aria-label="Día"/>
@@ -48,6 +54,36 @@ function uiGomets(){
       <div id="gm-lista" class="lc-gomets-lista"></div>
       <p class="lc-meta">Un gomet por hora. Se guarda al pulsar; pulsa otra vez el color marcado para quitarlo.</p>
     </div>`;
+}
+
+// Cuadrícula lunes-viernes x 6 horas con el horario completo del profesor,
+// apoyos incluidos (marcados "sin gomet"), para que compruebe que es el suyo.
+function lcHorarioSemanaHtml(sesiones){
+  if (!sesiones.length){
+    return '<p class="lc-meta">No tienes ninguna clase de ESO en el horario cargado.</p>';
+  }
+  const DIAS = ['L', 'M', 'X', 'J', 'V'];
+  const NOMBRES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+  const hoy = new Date().getDay(); // 1 = lunes ... 5 = viernes
+  const celda = {};
+  sesiones.forEach(s => { (celda[`${s.dia}-${s.hora}`] ||= []).push(s); });
+  const cab = DIAS.map((d, i) =>
+    `<th scope="col" class="${i + 1 === hoy ? 'is-hoy' : ''}"><abbr title="${NOMBRES[i]}">${d}</abbr></th>`).join('');
+  let filas = '';
+  for (let h = 1; h <= 6; h++){
+    filas += `<tr><th scope="row">${h}ª</th>`;
+    for (let d = 1; d <= 5; d++){
+      const lista = celda[`${d}-${h}`] || [];
+      const contenido = lista.map(s => {
+        const mezcla = s.gomet && s.clases.length > 1 ? `<span class="lc-hz-nota">cuenta para ${s.clases.map(lcEscapar).join(' y ')}</span>` : '';
+        const apoyo = s.gomet ? '' : '<span class="lc-hz-nota">sin gomet</span>';
+        return `<div class="lc-hz-sesion${s.gomet ? '' : ' is-apoyo'}"><strong>${lcEscapar(s.materia)}</strong> ${lcEscapar(s.grupo)}${mezcla}${apoyo}</div>`;
+      }).join('');
+      filas += `<td class="${d === hoy ? 'is-hoy' : ''}">${contenido}</td>`;
+    }
+    filas += '</tr>';
+  }
+  return `<div class="lc-hz-scroll"><table class="lc-hz"><thead><tr><th></th>${cab}</tr></thead><tbody>${filas}</tbody></table></div>`;
 }
 
 function bindGomets(container){
@@ -135,6 +171,14 @@ function bindGomets(container){
     const [y, m, d] = input.value.split('-').map(Number);
     fecha = new Date(y, m - 1, d);
     cargar();
+  });
+
+  // El horario no cambia al moverse de día: se pide una vez.
+  window.LC_get(EP + '/gomets/horario').then(res => {
+    const caja = container.querySelector('#gm-horario');
+    caja.innerHTML = res && res.ok
+      ? lcHorarioSemanaHtml(res.sesiones)
+      : '<p class="lc-alert lc-alert-danger">No se ha podido cargar tu horario.</p>';
   });
 
   cargar();

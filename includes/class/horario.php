@@ -283,6 +283,18 @@ class LC_Horario {
 
     // --------------------------------------------------------------- gomets
 
+    /**
+     * Horario completo de la semana de un profesor (también los apoyos, que no
+     * ponen gomet), para que lo compruebe en su app. Solo lleva lo que se cargó
+     * del horario del centro: las clases de ESO y sus desdobles.
+     */
+    public static function horario_semana($iniciales) {
+        global $wpdb;
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT dia, hora, materia, grupo, n, clases, cuenta FROM {$wpdb->prefix}lc_horario
+             WHERE profesor = %s ORDER BY dia, hora", $iniciales), ARRAY_A);
+    }
+
     /** Sesiones con gomet de un profesor en una fecha, con el color ya puesto. */
     public static function sesiones_del_dia($iniciales, $fecha) {
         global $wpdb; $p = $wpdb->prefix;
