@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Liga Convivencia
  * Description: Login por email de usuarios autorizados + registro de competiciones (Semáforo, Deportes, Partes, Biblioteca, Extraordinarias, Tiempo de Aprendizaje) y clasificación pública.
- * Version: 0.8.3
+ * Version: 1.0.0
  * Author: Majosoft
  */
 
@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) { exit; }
 // Definir constantes del plugin
 define('LC_PATH', plugin_dir_path(__FILE__));
 define('LC_URL', plugin_dir_url(__FILE__));
-define('LC_VERSION', '0.8.3');
+define('LC_VERSION', '1.0.0');
 
 // Cargar archivos necesarios
 require_once LC_PATH . 'includes/helpers.php';
@@ -19,11 +19,14 @@ require_once LC_PATH . 'includes/class/activator.php';
 require_once LC_PATH . 'includes/class/auth.php';
 require_once LC_PATH . 'includes/class/competiciones.php';
 require_once LC_PATH . 'includes/class/alumnos.php';
+require_once LC_PATH . 'includes/class/horario.php';
 require_once LC_PATH . 'includes/class/admin.php';
+require_once LC_PATH . 'includes/class/admin-profesorado.php';
 require_once LC_PATH . 'includes/class/assets.php';
 require_once LC_PATH . 'includes/class/rest-auth.php';
 require_once LC_PATH . 'includes/class/rest-alumnos.php';
 require_once LC_PATH . 'includes/class/rest-semaforo.php';
+require_once LC_PATH . 'includes/class/rest-gomets.php';
 require_once LC_PATH . 'includes/class/rest-deportes.php';
 require_once LC_PATH . 'includes/class/rest-partes.php';
 require_once LC_PATH . 'includes/class/rest-biblioteca.php';
@@ -51,6 +54,7 @@ add_action('init', function() {
     
     // Inicializar admin
     LC_Admin::init();
+    LC_Admin_Profesorado::init();
     
     // Inicializar assets
     LC_Assets::init();
@@ -72,6 +76,7 @@ add_action('rest_api_init', function() {
     LC_REST_Auth::register();
     LC_REST_Alumnos::register();
     LC_REST_Semaforo::register();
+    LC_REST_Gomets::register();
     LC_REST_Deportes::register();
     LC_REST_Partes::register();
     LC_REST_Biblioteca::register();

@@ -38,6 +38,11 @@ class LC_Admin {
                 'titulo' => 'Calendario',
                 'tabs' => ['temporadas' => 'Temporadas', 'trimestres' => 'Trimestres'],
             ],
+            // 1.0: lista del Semáforo y horario (LC_Admin_Profesorado).
+            'liga-creus-profesorado' => [
+                'titulo' => 'Profesorado',
+                'tabs' => ['profesores' => 'Profesores', 'horario' => 'Horario'],
+            ],
             'liga-creus-alumnos' => [
                 'titulo' => 'Alumnos',
                 'tabs' => ['alumnos' => 'Alumnos'],
@@ -233,6 +238,12 @@ class LC_Admin {
         // form genérico de abajo significaría anidar <form>, inválido en HTML.
         if ($tab === 'usuarios') {
             self::render_usuarios_tab();
+            echo '</div>';
+            return;
+        }
+
+        if ($tab === 'profesores' || $tab === 'horario') {
+            $tab === 'profesores' ? LC_Admin_Profesorado::render_profesores_tab() : LC_Admin_Profesorado::render_horario_tab();
             echo '</div>';
             return;
         }

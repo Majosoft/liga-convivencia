@@ -22,12 +22,13 @@ class LC_Assets {
         // JS - Cargar en orden de dependencias
         wp_enqueue_script('lc-helpers', LC_URL . 'assets/js/helpers.js', [], LC_VERSION, true);
         wp_enqueue_script('lc-ui-semaforo', LC_URL . 'assets/js/ui-semaforo.js', ['lc-helpers'], LC_VERSION, true);
+        wp_enqueue_script('lc-ui-gomets', LC_URL . 'assets/js/ui-gomets.js', ['lc-helpers'], LC_VERSION, true);
         wp_enqueue_script('lc-ui-deportes', LC_URL . 'assets/js/ui-deportes.js', ['lc-helpers'], LC_VERSION, true);
         wp_enqueue_script('lc-ui-partes', LC_URL . 'assets/js/ui-partes.js', ['lc-helpers'], LC_VERSION, true);
         wp_enqueue_script('lc-ui-biblioteca', LC_URL . 'assets/js/ui-biblioteca.js', ['lc-helpers'], LC_VERSION, true);
         wp_enqueue_script('lc-ui-extraordinarias', LC_URL . 'assets/js/ui-extraordinarias.js', ['lc-helpers'], LC_VERSION, true);
         wp_enqueue_script('lc-ui-tiempo-aprendizaje', LC_URL . 'assets/js/ui-tiempo-aprendizaje.js', ['lc-helpers'], LC_VERSION, true);
-        wp_enqueue_script('lc-app', LC_URL . 'assets/js/app.js', ['lc-helpers', 'lc-ui-semaforo', 'lc-ui-deportes', 'lc-ui-partes', 'lc-ui-biblioteca', 'lc-ui-extraordinarias', 'lc-ui-tiempo-aprendizaje'], LC_VERSION, true);
+        wp_enqueue_script('lc-app', LC_URL . 'assets/js/app.js', ['lc-helpers', 'lc-ui-semaforo', 'lc-ui-gomets', 'lc-ui-deportes', 'lc-ui-partes', 'lc-ui-biblioteca', 'lc-ui-extraordinarias', 'lc-ui-tiempo-aprendizaje'], LC_VERSION, true);
 
         // Ajustes para el JS
         $cfg = [

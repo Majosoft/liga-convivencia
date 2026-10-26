@@ -32,8 +32,13 @@ class LC_REST_Auth {
     // Igual que only_allowed(): un usuario dado de baja no debe ver el panel
     // (si no, cada petición fallaría y el aviso de sesión caducada se repetiría).
     $pl = LC_Auth::parse_token(LC_Auth::extract_token($req));
-    if (!$pl || !LC_Auth::find_user($pl['e'])) return new \WP_REST_Response(['ok'=>false],401);
-    return ['ok'=>true,'email'=>$pl['e']];
+    $rol = $pl ? LC_Auth::rol($pl['e']) : null;
+    if (!$rol) return new \WP_REST_Response(['ok'=>false],401);
+    // rol 'semaforo': el panel solo enseña sus gomets. profesor: con quién se
+    // corresponde en el horario (null si no da clase o no tiene email puesto).
+    $prof = LC_Horario::profesor_por_email($pl['e']);
+    return ['ok'=>true,'email'=>$pl['e'],'rol'=>$rol,
+            'profesor'=>$prof ? ['iniciales'=>$prof['iniciales'],'nombre'=>$prof['nombre']] : null];
   }
 
   public static function logout(\WP_REST_Request $req){

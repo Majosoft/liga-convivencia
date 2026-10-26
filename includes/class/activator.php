@@ -12,6 +12,11 @@ class LC_Activator {
     self::migrate_partes_severidad($wpdb, $p);
     self::migrate_emails_to_usuarios();
     self::migrate_usuarios_sin_pin();
+
+    // 1.0: horario del profesorado y gomets por hora (ver LC_Horario). La
+    // primera vez carga el horario y los profesores de 2026-27 (data/).
+    LC_Horario::create_tables($wpdb, $cc, $p);
+    LC_Horario::seed();
   }
 
   // Migra la antigua lista de "emails autorizados" (opción suelta lc_allowed_emails)

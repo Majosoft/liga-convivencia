@@ -440,3 +440,44 @@
     margin-right: 0;
   }
 }
+
+/* ---- Semáforo por hora: "Mis gomets" (1.0, ui-gomets.js) ---------------- */
+.lc-gomets-dia{
+  display: flex;
+  align-items: center;
+  gap: var(--lc-space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--lc-space-2);
+}
+.lc-gomets-dia input[type="date"]{ min-height: var(--lc-touch-target); }
+#gm-titulo{ text-transform: capitalize; font-weight: 600; color: var(--lc-color-neutral-800); }
+.lc-gomets-lista{ display: flex; flex-direction: column; gap: var(--lc-space-3); margin: var(--lc-space-3) 0; }
+.lc-gomet-fila{
+  display: flex;
+  flex-direction: column;
+  gap: var(--lc-space-2);
+  padding: var(--lc-space-3);
+  border: 1px solid var(--lc-color-neutral-200);
+  border-radius: var(--lc-radius-md);
+  background: var(--lc-color-surface);
+}
+.lc-gomet-fila .lc-status{ margin-top: 0; min-height: 1em; }
+.lc-gomet-botones{ display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--lc-space-2); }
+.lc-gomet-btn{
+  min-height: var(--lc-touch-target);
+  border-radius: var(--lc-radius-sm);
+  border: 2px solid var(--lc-color-neutral-200);
+  background: var(--lc-color-surface);
+  color: var(--lc-color-neutral-700);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lc-gomet-btn:focus-visible{ outline: 3px solid var(--lc-color-primary); outline-offset: 2px; }
+.lc-gomet-btn:disabled{ opacity: .6; cursor: wait; }
+.lc-gomet-btn.is-success.is-activo{ background: var(--lc-color-success-light); border-color: var(--lc-color-success); color: var(--lc-color-success); }
+.lc-gomet-btn.is-warning.is-activo{ background: var(--lc-color-warning-light); border-color: var(--lc-color-warning); color: var(--lc-color-warning); }
+.lc-gomet-btn.is-danger.is-activo { background: var(--lc-color-danger-light);  border-color: var(--lc-color-danger);  color: var(--lc-color-danger); }
+@media (max-width: 480px){
+  .lc-gomet-btn{ font-size: 13px; padding: 0 4px; }
+}

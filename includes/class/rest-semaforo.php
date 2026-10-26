@@ -113,17 +113,33 @@ class LC_REST_Semaforo {
     }
 
     /**
-     * Crea o actualiza datos del semáforo con lógica de cascada
+     * Crea o actualiza datos del semáforo con lógica de cascada (formulario
+     * manual del panel).
      */
     public static function upsert(\WP_REST_Request $req){
+        $res = self::guardar_semana(
+            sanitize_text_field($req['clase']), intval($req['year']), intval($req['week']),
+            intval($req->get_param('gomets_verdes')), intval($req->get_param('gomets_amarillos')), intval($req->get_param('gomets_rojos')),
+            sanitize_textarea_field($req->get_param('notas')), LC_Helpers::get_current_user_email()
+        );
+        if (is_string($res)) return new \WP_REST_Response(['ok'=>false,'error'=>$res], 500);
+        return ['ok'=>true, 'current_total'=>$res];
+    }
+
+    /**
+     * Guarda los gomets de una clase en una semana y rehace el acumulado
+     * ("total") de esa semana y de todas las posteriores. La usan el formulario
+     * manual y, desde la 1.0, el recuento automático de los gomets por hora
+     * (LC_Horario::recalcular_semana). $notas null = conservar las que hubiera.
+     * Devuelve el acumulado final o un mensaje de error.
+     */
+    public static function guardar_semana($clase, $year, $week, $verdes, $amarillos, $rojos, $notas, $created_by){
         global $wpdb; $p = $wpdb->prefix;
-        $clase = sanitize_text_field($req['clase']);
-        $year  = intval($req['year']);
-        $week  = intval($req['week']);
-        $gomets_verdes = intval($req->get_param('gomets_verdes'));
-        $gomets_amarillos = intval($req->get_param('gomets_amarillos'));
-        $gomets_rojos = intval($req->get_param('gomets_rojos'));
-        $notas = sanitize_textarea_field($req->get_param('notas'));
+
+        if ($notas === null) {
+            $notas = (string) $wpdb->get_var($wpdb->prepare(
+                "SELECT notas FROM {$p}lc_semaforo WHERE clase=%s AND iso_year=%d AND iso_week=%d", $clase, $year, $week));
+        }
 
         // Total acumulado de la semana anterior (0 si esta es la primera semana de la clase)
         $prev_total_db = $wpdb->get_var(
@@ -137,27 +153,27 @@ class LC_REST_Semaforo {
 
         // Nuevo total = acumulado de la semana anterior + delta de gomets de esta semana
         $new_total = $prev_total + self::calculateTotal([
-            'gomets_verdes' => $gomets_verdes,
-            'gomets_amarillos' => $gomets_amarillos,
-            'gomets_rojos' => $gomets_rojos
+            'gomets_verdes' => $verdes,
+            'gomets_amarillos' => $amarillos,
+            'gomets_rojos' => $rojos
         ]);
 
         // Guardar/actualizar la semana actual
         $data = [
             'clase'=>$clase, 'iso_year'=>$year, 'iso_week'=>$week,
-            'gomets_verdes'=>$gomets_verdes, 'gomets_amarillos'=>$gomets_amarillos, 'gomets_rojos'=>$gomets_rojos,
+            'gomets_verdes'=>$verdes, 'gomets_amarillos'=>$amarillos, 'gomets_rojos'=>$rojos,
             'total'=>$new_total, 'notas'=>$notas,
-            'created_by'=> LC_Helpers::get_current_user_email(),
+            'created_by'=> $created_by,
         ];
-        $res = $wpdb->replace("{$p}lc_semaforo", $data, ['%s','%d','%d','%d','%d','%d','%s','%s']);
+        $res = $wpdb->replace("{$p}lc_semaforo", $data, ['%s','%d','%d','%d','%d','%d','%d','%s','%s']);
         if ($res === false) {
             error_log('LC Semaforo DB Error: ' . $wpdb->last_error);
-            return new \WP_REST_Response(['ok'=>false,'error'=>'DB: ' . $wpdb->last_error], 500);
+            return 'DB: ' . $wpdb->last_error;
         }
 
         // LÓGICA DE CASCADA: Recalcular todas las semanas posteriores
         $semanas_posteriores = $wpdb->get_results(
-            $wpdb->prepare("SELECT id, iso_year, iso_week, gomets_verdes, gomets_amarillos, gomets_rojos, notas, created_by
+            $wpdb->prepare("SELECT id, gomets_verdes, gomets_amarillos, gomets_rojos
                             FROM {$p}lc_semaforo
                             WHERE clase=%s 
                             AND (iso_year > %d OR (iso_year = %d AND iso_week > %d))
@@ -165,31 +181,16 @@ class LC_REST_Semaforo {
                             $clase, $year, $year, $week)
         );
 
-        $current_total = $new_total; // Empezamos con el total de la semana modificada
-
+        $current_total = $new_total;
         foreach ($semanas_posteriores as $semana) {
-            // El total de cada semana posterior = total de la semana anterior + gomets de esa semana
-            $new_total = $current_total + self::calculateTotal([
+            $current_total += self::calculateTotal([
                 'gomets_verdes' => intval($semana->gomets_verdes),
                 'gomets_amarillos' => intval($semana->gomets_amarillos),
                 'gomets_rojos' => intval($semana->gomets_rojos)
             ]);
-
-            $update_data = [
-                'total' => $new_total,
-            ];
-
-            $wpdb->update(
-                "{$p}lc_semaforo",
-                $update_data,
-                ['id' => $semana->id],
-                ['%d'],
-                ['%d']
-            );
-
-            $current_total = $new_total; // Para la siguiente iteración
+            $wpdb->update("{$p}lc_semaforo", ['total' => $current_total], ['id' => $semana->id], ['%d'], ['%d']);
         }
 
-        return ['ok'=>true, 'current_total'=>$current_total];
+        return $current_total;
     }
 }

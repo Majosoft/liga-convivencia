@@ -44,7 +44,10 @@ window.LC_get = async function(url){
 
   // Pestañas -> módulo (Semáforo/Partes comparten "Clase" en la barra de contexto;
   // Deportes/Biblioteca gestionan sus propias clases por partido/actividad).
+  // needsWeek: false = el módulo no usa la semana de la barra de contexto.
   const MODULES = {
+    // 1.0: gomets por hora de clase del propio profesor (ui-gomets.js).
+    gomets:           { ui: () => uiGomets(),           bind: (el, ctx) => bindGomets(el, ctx),           needsClase: false, needsWeek: false, label: 'Mis gomets' },
     semaforo:         { ui: () => uiSemaforo(),         bind: (el, ctx) => bindSemaforo(el, ctx),         needsClase: true,  label: 'Semáforo' },
     deportes:         { ui: () => uiDeportes(),         bind: (el, ctx) => bindDeportes(el, ctx),         needsClase: false, label: 'Deportes' },
     partes:           { ui: () => uiPartes(),           bind: (el, ctx) => bindPartes(el, ctx),           needsClase: true,  label: 'Partes' },
@@ -64,7 +67,7 @@ window.LC_get = async function(url){
       const me = await window.LC_get(EP + '/auth/me');
       if (me && me.ok) {
         root.innerHTML = uiShell(me.email);
-        bindShell(root);
+        bindShell(root, modulosDe(me));
       } else {
         root.innerHTML = uiLogin();
         bindLogin(root);
@@ -73,6 +76,14 @@ window.LC_get = async function(url){
       root.innerHTML = uiLogin();
       bindLogin(root);
     }
+  }
+
+  // Qué pestañas ve cada uno (1.0): el profesor de la lista del Semáforo, solo
+  // sus gomets (el servidor tampoco le deja más); quien tiene acceso completo,
+  // todo, más "Mis gomets" delante si además da clase.
+  function modulosDe(me){
+    if (me.rol === 'semaforo') return ['gomets'];
+    return me.profesor ? ['gomets', ...MODULE_ORDER] : MODULE_ORDER;
   }
 
   function uiLogin(){
@@ -129,7 +140,7 @@ window.LC_get = async function(url){
             <label for="lc-clase">Clase/Grupo</label>
             <select id="lc-clase">${claseOptions}</select>
           </div>
-          <div class="lc-field">
+          <div class="lc-field" id="lc-context-week-field">
             <label for="lc-week">Semana</label>
             <select id="lc-week"></select>
           </div>
@@ -141,9 +152,11 @@ window.LC_get = async function(url){
       </div>`;
   }
 
-  function bindShell(root){
+  function bindShell(root, orden){
     const logoutBtn   = root.querySelector('#lc-logout');
     const claseField  = root.querySelector('#lc-context-clase-field');
+    const weekField   = root.querySelector('#lc-context-week-field');
+    const contextBar  = root.querySelector('.lc-context-bar');
     const claseSelect = root.querySelector('#lc-clase');
     const weekSelect  = root.querySelector('#lc-week');
     const tabsEl      = root.querySelector('.lc-tabs');
@@ -151,7 +164,7 @@ window.LC_get = async function(url){
 
     initWeekSelect(weekSelect);
 
-    const state = { tab: MODULE_ORDER[0], dirty: false };
+    const state = { tab: orden[0], dirty: false };
     let moduleHandle = null;
     let lastClase = claseSelect.value;
     let lastWeek  = weekSelect.value;
@@ -172,7 +185,9 @@ window.LC_get = async function(url){
     }
 
     function renderTabs(){
-      tabsEl.innerHTML = MODULE_ORDER.map(key => `
+      // Con una sola pestaña (profesor del Semáforo) no se pinta la barra.
+      tabsEl.style.display = orden.length > 1 ? '' : 'none';
+      tabsEl.innerHTML = orden.map(key => `
         <button class="lc-tab${key === state.tab ? ' active' : ''}" data-tab="${key}" role="tab" aria-selected="${key === state.tab}">${MODULES[key].label}</button>
       `).join('');
     }
@@ -181,7 +196,10 @@ window.LC_get = async function(url){
       state.tab = tab;
       state.dirty = false;
       renderTabs();
+      const needsWeek = MODULES[tab].needsWeek !== false;
       claseField.style.display = MODULES[tab].needsClase ? '' : 'none';
+      weekField.style.display = needsWeek ? '' : 'none';
+      contextBar.style.display = (MODULES[tab].needsClase || needsWeek) ? '' : 'none';
       panel.innerHTML = MODULES[tab].ui();
       moduleHandle = MODULES[tab].bind(panel, buildCtx()) || null;
     }

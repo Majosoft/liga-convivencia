@@ -58,7 +58,36 @@ class LC_Auth {
      * baja a quien deje de necesitar acceso.
      */
     public static function is_authorized($email) {
-        return self::find_user($email) !== null;
+        return self::rol($email) !== null;
+    }
+
+    /**
+     * Qué puede hacer un email (1.0):
+     * - 'completo': está en Acceso > Usuarios. Todas las competiciones.
+     * - 'semaforo': solo es profesor con email en Profesorado. Únicamente pone
+     *   los gomets de sus clases (ver LC_REST_Gomets); el resto de rutas le
+     *   responden 401 porque siguen protegidas con only_allowed().
+     * - null: sin acceso.
+     */
+    public static function rol($email) {
+        if (self::find_user($email) !== null) return 'completo';
+        if (LC_Horario::profesor_por_email($email) !== null) return 'semaforo';
+        return null;
+    }
+
+    /** Email de la sesión de la request, o '' si no hay una válida. */
+    public static function email_de($req) {
+        $pl = self::parse_token(self::extract_token($req));
+        return $pl['e'] ?? '';
+    }
+
+    /**
+     * Permiso de las rutas de gomets: cualquier email que sea profesor con
+     * horario, tenga o no acceso completo.
+     */
+    public static function solo_profesor(\WP_REST_Request $req) {
+        $email = self::email_de($req);
+        return $email !== '' && LC_Horario::profesor_por_email($email) !== null;
     }
 
     /**
