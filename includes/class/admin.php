@@ -38,10 +38,10 @@ class LC_Admin {
                 'titulo' => 'Calendario',
                 'tabs' => ['temporadas' => 'Temporadas', 'trimestres' => 'Trimestres'],
             ],
-            // 1.0: lista del Semáforo y horario (LC_Admin_Profesorado).
+            // 1.0: horario del profesorado (LC_Admin_Profesorado).
             'liga-creus-profesorado' => [
-                'titulo' => 'Profesorado',
-                'tabs' => ['profesores' => 'Profesores', 'horario' => 'Horario'],
+                'titulo' => 'Horario',
+                'tabs' => ['horario' => 'Horario'],
             ],
             'liga-creus-alumnos' => [
                 'titulo' => 'Alumnos',
@@ -49,7 +49,15 @@ class LC_Admin {
             ],
             'liga-creus-acceso' => [
                 'titulo' => 'Acceso',
-                'tabs' => ['usuarios' => 'Usuarios', 'app' => 'App profesorado', 'app_semaforo' => 'App Semáforo'],
+                // Las dos listas de acceso (1.0): 'profesores' = solo gomets del
+                // Semáforo (LC_Admin_Profesorado); 'usuarios' = formularios y
+                // resto de registros (acceso completo).
+                'tabs' => [
+                    'profesores' => 'Lista Semáforo',
+                    'usuarios' => 'Lista Formularios',
+                    'app' => 'App profesorado',
+                    'app_semaforo' => 'App Semáforo',
+                ],
             ],
         ];
     }
@@ -327,7 +335,10 @@ class LC_Admin {
         }
 
         echo '<div class="lc-admin-card">';
-        echo '<p>Estas son las personas que pueden iniciar sesión en el panel para registrar resultados (Semáforo, Deportes, Partes, Biblioteca...). '
+        echo '<p><strong>Lista Formularios: acceso completo.</strong> Estas personas usan los formularios del panel y meten todos los registros '
+            . '(Deportes, Partes, Biblioteca, Extraordinarias, el Semáforo semanal...). Para quien solo tiene que poner gomets en sus clases está la '
+            . '<a href="' . esc_url(admin_url('admin.php?page=liga-creus-acceso&tab=profesores')) . '">Lista Semáforo</a>.</p>';
+        echo '<p>'
             . 'Cada una entra solo con su email, sin contraseña ni PIN: <strong>basta con conocer un email de esta lista para acceder al panel</strong>, '
             . 'así que conviene mantenerla corta y dar de baja a quien deje de necesitar acceso. '
             . 'Eliminar a un usuario le bloquea el acceso de inmediato, aunque tuviera una sesión abierta en ese momento.</p>';
@@ -674,7 +685,7 @@ class LC_Admin {
     // App Semáforo (1.0): el mismo formulario, sobre LC_App_Semaforo.
     public static function render_app_semaforo_field() {
         echo '<p>App aparte, <strong>solo del Semáforo</strong>: cada profesor de '
-            . '<a href="' . esc_url(admin_url('admin.php?page=liga-creus-profesorado')) . '">Profesorado</a> la instala en su móvil '
+            . '<a href="' . esc_url(admin_url('admin.php?page=liga-creus-acceso&tab=profesores')) . '">Lista Semáforo</a> la instala en su móvil '
             . 'y al abrirla ve únicamente sus clases del día para poner los gomets. Comparte el inicio de sesión por email con el resto del panel.</p>';
         self::render_app_field('LC_App_Semaforo');
     }

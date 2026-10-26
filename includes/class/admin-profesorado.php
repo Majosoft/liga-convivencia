@@ -2,20 +2,27 @@
 if (!defined('ABSPATH')) { exit; }
 
 /**
- * Liga Convivencia > Profesorado (1.0): la lista del Semáforo (qué email es de
- * qué profesor del horario) y el horario en sí. Igual que Usuarios y Alumnos,
+ * Dos pantallas de la 1.0: Acceso > Lista Semáforo (qué email es de qué
+ * profesor del horario; esas personas SOLO ponen gomets) y Horario.
+ * La otra lista, la de Formularios (acceso completo), es Acceso > Lista
+ * Formularios, en LC_Admin::render_usuarios_tab(). Igual que Usuarios y Alumnos,
  * sus formularios no pasan por la Settings API: cada acción lleva su nonce y se
  * gestiona en maybe_handle_action() (admin_init).
  */
 class LC_Admin_Profesorado {
-    const PAGE = 'liga-creus-profesorado';
+    const PAGE = 'liga-creus-profesorado';     // Horario
+    const PAGE_LISTA = 'liga-creus-acceso';    // Lista Semáforo vive en Acceso
 
     public static function init() {
         add_action('admin_init', [__CLASS__, 'maybe_handle_action']);
     }
 
+    private static function pagina($tab) {
+        return $tab === 'profesores' ? self::PAGE_LISTA : self::PAGE;
+    }
+
     private static function url($tab, $args = []) {
-        return add_query_arg(array_merge(['page' => self::PAGE, 'tab' => $tab], $args), admin_url('admin.php'));
+        return add_query_arg(array_merge(['page' => self::pagina($tab), 'tab' => $tab], $args), admin_url('admin.php'));
     }
 
     private static function avisos($textos) {
@@ -31,7 +38,7 @@ class LC_Admin_Profesorado {
         echo '<form method="post" action="' . esc_url(admin_url('admin.php')) . '" ' . $extra . '>';
         wp_nonce_field('lc_profesorado_action');
         echo '<input type="hidden" name="lc_action" value="' . esc_attr($accion) . '" />';
-        echo '<input type="hidden" name="page" value="' . self::PAGE . '" />';
+        echo '<input type="hidden" name="page" value="' . esc_attr(self::pagina($tab)) . '" />';
         echo '<input type="hidden" name="tab" value="' . esc_attr($tab) . '" />';
     }
 
@@ -51,10 +58,13 @@ class LC_Admin_Profesorado {
         }
 
         echo '<div class="lc-admin-card">';
-        echo '<p><strong>Lista del Semáforo.</strong> Cada profesor con email entra en el panel y ve <strong>solo sus clases</strong> del día que elija, '
-            . 'según su horario, para poner un gomet por hora. <strong>No puede tocar el resto de competiciones</strong>: eso queda para '
-            . 'las personas de <a href="' . esc_url(admin_url('admin.php?page=liga-creus-acceso&tab=usuarios')) . '">Acceso &gt; Usuarios</a>, '
-            . 'que pueden hacerlo todo (y, si además están aquí, también poner sus gomets).</p>';
+        echo '<p><strong>Lista Semáforo: solo para poner gomets.</strong> Cada profesor con email entra (en el panel o en la App Semáforo) '
+            . 'y ve <strong>solo sus clases</strong> del día que elija, según su horario, para poner un gomet por hora. '
+            . '<strong>No puede usar los formularios ni meter otros registros</strong> (Deportes, Partes, Biblioteca...): eso es de la '
+            . '<a href="' . esc_url(admin_url('admin.php?page=liga-creus-acceso&tab=usuarios')) . '">Lista Formularios</a>. '
+            . 'Quien esté en las dos listas puede hacer las dos cosas.</p>';
+        echo '<p>Para quitarle el acceso a alguien, borra su email (su horario se conserva). Para dar de alta a un profesor nuevo, '
+            . 'sus iniciales tienen que estar también en el <a href="' . esc_url(admin_url('admin.php?page=liga-creus-profesorado')) . '">Horario</a>.</p>';
         echo '<p>Como en Usuarios, se entra solo con el email, sin contraseña: quien conozca el email de un profesor puede poner gomets en su nombre.</p>';
 
         self::form_abrir('profesores_guardar', 'profesores');
@@ -117,7 +127,7 @@ class LC_Admin_Profesorado {
         $por_prof = [];
         foreach ($filas as $f) $por_prof[$f->profesor][] = $f;
         foreach ($por_prof as $ini => $sesiones) {
-            echo '<details style="margin:6px 0"><summary><strong>' . esc_html($ini) . '</strong> — ' . esc_html($nombres[$ini] ?? 'sin nombre en Profesores')
+            echo '<details style="margin:6px 0"><summary><strong>' . esc_html($ini) . '</strong> — ' . esc_html($nombres[$ini] ?? 'no está en la Lista Semáforo')
                 . ' (' . count($sesiones) . ')</summary>';
             echo '<table class="widefat striped" style="margin:8px 0 12px;max-width:700px"><thead><tr><th>Día</th><th>Hora</th><th>Materia</th><th>Grupo</th><th>Cuenta para</th></tr></thead><tbody>';
             foreach ($sesiones as $s) {
