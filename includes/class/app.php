@@ -31,31 +31,42 @@ class LC_App {
 
     const COLOR = '#4F46E5'; // --lc-color-primary
 
+    // Lo que cambia la app del Semáforo (LC_App_Semaforo, 1.0), que hereda de
+    // esta: todo lo demás usa static:: para que la subclase lo pueda redefinir.
+    const MODO = 'completo';           // qué enseña el panel (ver modulosDe en app.js)
+    const CACHE_PREFIX = 'lc-app-';    // caché del service worker; distinta por app
+    const ICONOS = 'app-icon';         // prefijo de los iconos en assets/img/
+    const DESCRIPCION = 'Registro de la Liga Convivencia para el profesorado.';
+
     public static function init() {
-        add_action('parse_request', [__CLASS__, 'maybe_serve'], 0);
+        add_action('parse_request', [static::class, 'maybe_serve'], 0);
     }
 
     public static function get() {
-        $cfg = get_option(self::OPT, []);
-        return array_merge(self::DEFAULTS, is_array($cfg) ? $cfg : []);
+        $cfg = get_option(static::OPT, []);
+        return array_merge(static::DEFAULTS, is_array($cfg) ? $cfg : []);
     }
 
     public static function slug() {
-        return self::get()['slug'] ?: self::DEFAULTS['slug'];
+        return static::get()['slug'] ?: static::DEFAULTS['slug'];
     }
 
     /** Enlace público de la app, el que se reparte al profesorado. */
     public static function url($sub = '') {
-        return home_url('/' . self::slug() . '/' . $sub);
+        return home_url('/' . static::slug() . '/' . $sub);
     }
 
     public static function sanitize($in) {
         $in = is_array($in) ? $in : [];
         $slug = sanitize_title($in['slug'] ?? '');
-        if ($slug === '' || in_array($slug, self::SLUGS_RESERVADOS, true)) {
-            $slug = self::DEFAULTS['slug'];
+        if ($slug === '' || in_array($slug, static::SLUGS_RESERVADOS, true)) {
+            $slug = static::DEFAULTS['slug'];
         }
-        $nombre = sanitize_text_field($in['nombre'] ?? '') ?: self::DEFAULTS['nombre'];
+        // Las dos apps no pueden compartir dirección: la primera taparía a la otra.
+        foreach (['LC_App', 'LC_App_Semaforo'] as $otra) {
+            if ($otra !== static::class && $otra::slug() === $slug) $slug = static::DEFAULTS['slug'];
+        }
+        $nombre = sanitize_text_field($in['nombre'] ?? '') ?: static::DEFAULTS['nombre'];
         $corto  = sanitize_text_field($in['nombre_corto'] ?? '') ?: $nombre;
         return [
             'slug'         => $slug,
@@ -80,22 +91,22 @@ class LC_App {
     }
 
     public static function maybe_serve() {
-        $slug = self::slug();
-        $ruta = self::ruta_pedida();
+        $slug = static::slug();
+        $ruta = static::ruta_pedida();
 
         if ($ruta === $slug) {
             // Sin barra final la página quedaría fuera del scope del manifest
             // (/<slug>/) y el navegador no ofrecería instalarla.
             $uri = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
             if (substr($uri, -1) !== '/') {
-                wp_safe_redirect(self::url(), 301);
+                wp_safe_redirect(static::url(), 301);
                 exit;
             }
-            self::render_page();
+            static::render_page();
         } elseif ($ruta === $slug . '/manifest.webmanifest') {
-            self::render_manifest();
+            static::render_manifest();
         } elseif ($ruta === $slug . '/sw.js') {
-            self::render_sw();
+            static::render_sw();
         } else {
             return;
         }
@@ -107,7 +118,7 @@ class LC_App {
      * con su tamaño real) y si no los que vienen con el plugin.
      */
     private static function iconos() {
-        $id = (int) self::get()['icono'];
+        $id = (int) static::get()['icono'];
         if ($id) {
             $src = wp_get_attachment_image_src($id, 'full');
             if ($src) {
@@ -119,41 +130,41 @@ class LC_App {
         }
         $img = LC_URL . 'assets/img/';
         return [
-            ['src' => $img . 'app-icon-192.png',          'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
-            ['src' => $img . 'app-icon-512.png',          'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
-            ['src' => $img . 'app-icon-maskable-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+            ['src' => $img . static::ICONOS . '-192.png',          'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => $img . static::ICONOS . '-512.png',          'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => $img . static::ICONOS . '-maskable-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
         ];
     }
 
     /** Icono para iOS, que no lee el manifest y no admite transparencias. */
     private static function icono_apple() {
-        $id = (int) self::get()['icono'];
+        $id = (int) static::get()['icono'];
         $src = $id ? wp_get_attachment_image_url($id, 'full') : '';
-        return $src ?: LC_URL . 'assets/img/app-icon-apple-180.png';
+        return $src ?: LC_URL . 'assets/img/' . static::ICONOS . '-apple-180.png';
     }
 
     private static function render_manifest() {
-        $cfg = self::get();
+        $cfg = static::get();
         status_header(200);
         header('Content-Type: application/manifest+json; charset=utf-8');
         echo wp_json_encode([
-            'id'               => self::url(),
+            'id'               => static::url(),
             'name'             => $cfg['nombre'],
             'short_name'       => $cfg['nombre_corto'],
-            'description'      => 'Registro de la Liga Convivencia para el profesorado.',
+            'description'      => static::DESCRIPCION,
             'lang'             => 'es',
-            'start_url'        => self::url(),
-            'scope'            => self::url(),
+            'start_url'        => static::url(),
+            'scope'            => static::url(),
             'display'          => 'standalone',
             'orientation'      => 'any',
             'background_color' => '#F8FAFC',
-            'theme_color'      => self::COLOR,
+            'theme_color'      => static::COLOR,
             // La carpeta del plugin lleva un espacio ("Plugin-Liga-Creus Def"):
             // en HTML lo codifica esc_url, pero en el JSON hay que hacerlo a mano.
             'icons'            => array_map(function($i) {
                 $i['src'] = str_replace(' ', '%20', $i['src']);
                 return $i;
-            }, self::iconos()),
+            }, static::iconos()),
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
@@ -171,21 +182,23 @@ class LC_App {
         status_header(200);
         header('Content-Type: application/javascript; charset=utf-8');
         header('Cache-Control: no-cache');
-        $cache   = 'lc-app-' . LC_VERSION;
+        $cache   = static::CACHE_PREFIX . LC_VERSION;
+        $prefijo = static::CACHE_PREFIX;
         $assets  = wp_json_encode(LC_URL);
-        $nombre  = esc_html(self::get()['nombre']);
+        $nombre  = esc_html(static::get()['nombre']);
         $offline = '<!doctype html><html lang="es"><head><meta charset="utf-8">'
             . '<meta name="viewport" content="width=device-width,initial-scale=1">'
             . '<title>' . $nombre . '</title></head>'
             . '<body style="font-family:system-ui,sans-serif;background:#F8FAFC;color:#0F172A;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px;text-align:center">'
             . '<div><h1 style="font-size:20px">Sin conexión</h1>'
             . '<p>Para registrar hace falta Internet. Comprueba la conexión y vuelve a intentarlo.</p>'
-            . '<button onclick="location.reload()" style="font:inherit;padding:10px 20px;border:0;border-radius:8px;background:' . self::COLOR . ';color:#fff">Reintentar</button>'
+            . '<button onclick="location.reload()" style="font:inherit;padding:10px 20px;border:0;border-radius:8px;background:' . static::COLOR . ';color:#fff">Reintentar</button>'
             . '</div></body></html>';
         $offline = wp_json_encode($offline, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         echo <<<JS
 const CACHE = '{$cache}';
+const PREFIJO = '{$prefijo}';
 const ASSETS = {$assets};
 const OFFLINE = {$offline};
 
@@ -193,7 +206,7 @@ self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k.startsWith('lc-app-') && k !== CACHE) await caches.delete(k);
+    for (const k of await caches.keys()) if (k.startsWith(PREFIJO) && k !== CACHE) await caches.delete(k);
     await self.clients.claim();
   })());
 });
@@ -227,7 +240,7 @@ JS;
     }
 
     private static function render_page() {
-        $cfg = self::get();
+        $cfg = static::get();
 
         // Nada de cachés de página: la página lleva el nonce de la API.
         nocache_headers();
@@ -237,8 +250,9 @@ JS;
         LC_Assets::enqueue();
         wp_enqueue_script('lc-pwa', LC_URL . 'assets/js/pwa.js', [], LC_VERSION, true);
         wp_add_inline_script('lc-pwa', 'window.LC_APP = ' . wp_json_encode([
-            'sw'    => self::url('sw.js'),
-            'scope' => self::url(),
+            'sw'    => static::url('sw.js'),
+            'scope' => static::url(),
+            'modo'  => static::MODO,
         ]) . ';', 'before');
 
         $nombre = $cfg['nombre'];
@@ -249,10 +263,10 @@ JS;
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title><?php echo esc_html($nombre); ?></title>
-<meta name="theme-color" content="<?php echo esc_attr(self::COLOR); ?>">
-<link rel="manifest" href="<?php echo esc_url(self::url('manifest.webmanifest')); ?>">
-<link rel="icon" href="<?php echo esc_url(LC_URL . 'assets/img/app-icon-192.png'); ?>">
-<link rel="apple-touch-icon" href="<?php echo esc_url(self::icono_apple()); ?>">
+<meta name="theme-color" content="<?php echo esc_attr(static::COLOR); ?>">
+<link rel="manifest" href="<?php echo esc_url(static::url('manifest.webmanifest')); ?>">
+<link rel="icon" href="<?php echo esc_url(LC_URL . 'assets/img/' . static::ICONOS . '-192.png'); ?>">
+<link rel="apple-touch-icon" href="<?php echo esc_url(static::icono_apple()); ?>">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -262,7 +276,7 @@ JS;
   .lc-app-bar{
     display:flex; align-items:center; gap:var(--lc-space-3);
     padding:calc(var(--lc-space-3) + env(safe-area-inset-top)) var(--lc-space-4) var(--lc-space-3);
-    background:var(--lc-color-primary); color:var(--lc-color-on-primary);
+    background:<?php echo esc_attr(static::COLOR); ?>; color:var(--lc-color-on-primary);
   }
   .lc-app-bar img{ width:32px; height:32px; border-radius:var(--lc-radius-sm); }
   .lc-app-bar h1{ font-size:20px; margin:0; color:inherit; }
@@ -282,7 +296,7 @@ JS;
 </head>
 <body>
   <header class="lc-app-bar">
-    <img src="<?php echo esc_url(self::icono_apple()); ?>" alt="">
+    <img src="<?php echo esc_url(static::icono_apple()); ?>" alt="">
     <h1><?php echo esc_html($nombre); ?></h1>
   </header>
   <main class="lc-app-main">

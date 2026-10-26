@@ -29,7 +29,8 @@
   const cerrar = document.getElementById('lc-app-install-close');
   if (instalada || !aviso) return;
 
-  const CLAVE = 'lc_app_aviso_cerrado';
+  // Una clave por app: cerrar el aviso en una no debe ocultarlo en la otra.
+  const CLAVE = cfg.modo === 'semaforo' ? 'lc_app_semaforo_aviso_cerrado' : 'lc_app_aviso_cerrado';
   try { if (localStorage.getItem(CLAVE)) return; } catch(e){}
 
   cerrar.addEventListener('click', () => {

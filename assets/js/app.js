@@ -65,9 +65,17 @@ window.LC_get = async function(url){
   async function render(root){
     try {
       const me = await window.LC_get(EP + '/auth/me');
-      if (me && me.ok) {
+      const modulos = me && me.ok ? modulosDe(me) : [];
+      if (me && me.ok && !modulos.length) {
+        root.innerHTML = uiSinClases(me.email);
+        root.querySelector('#lc-logout').addEventListener('click', async ()=>{
+          await window.LC_post(EP + '/auth/logout', {});
+          try { localStorage.removeItem('lc_token'); } catch(e){}
+          await render(root);
+        });
+      } else if (me && me.ok) {
         root.innerHTML = uiShell(me.email);
-        bindShell(root, modulosDe(me));
+        bindShell(root, modulos);
       } else {
         root.innerHTML = uiLogin();
         bindLogin(root);
@@ -81,9 +89,26 @@ window.LC_get = async function(url){
   // Qué pestañas ve cada uno (1.0): el profesor de la lista del Semáforo, solo
   // sus gomets (el servidor tampoco le deja más); quien tiene acceso completo,
   // todo, más "Mis gomets" delante si además da clase.
+  // En la app del Semáforo (LC_App_Semaforo) solo "Mis gomets", sea quien sea;
+  // si quien entra no tiene horario, lista vacía (ver uiSinClases).
   function modulosDe(me){
+    if ((window.LC_APP || {}).modo === 'semaforo') return me.profesor ? ['gomets'] : [];
     if (me.rol === 'semaforo') return ['gomets'];
     return me.profesor ? ['gomets', ...MODULE_ORDER] : MODULE_ORDER;
+  }
+
+  // App del Semáforo abierta con un email que no es de ningún profesor del
+  // horario (p. ej. alguien de Acceso > Usuarios que no da clase).
+  function uiSinClases(email){
+    return `
+      <div class="lc-card">
+        <div class="lc-toolbar lc-shell-header">
+          <div class="lc-meta">Sesión: <strong>${email}</strong></div>
+          <button class="lc-btn lc-btn-secondary" id="lc-logout" type="button">Cerrar sesión</button>
+        </div>
+        <p>Este email no está en el horario del profesorado, así que no tiene clases en las que poner gomets.
+           Si es un error, pide a quien administra la Liga que lo añada en <em>Profesorado</em>.</p>
+      </div>`;
   }
 
   function uiLogin(){

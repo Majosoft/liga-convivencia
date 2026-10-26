@@ -35,6 +35,7 @@ require_once LC_PATH . 'includes/class/rest-tiempo-aprendizaje.php';
 require_once LC_PATH . 'includes/class/rest-clasificacion.php';
 require_once LC_PATH . 'includes/class/shortcode-clasificacion.php';
 require_once LC_PATH . 'includes/class/app.php';
+require_once LC_PATH . 'includes/class/app-semaforo.php';
 
 // Hook de activación
 register_activation_hook(__FILE__, ['LC_Activator', 'activate']);
@@ -61,6 +62,8 @@ add_action('init', function() {
 
     // App instalable del profesorado (https://sitio/<slug>/)
     LC_App::init();
+    // 1.0: app instalable solo del Semáforo (https://sitio/<slug>/, por defecto /semaforo/)
+    LC_App_Semaforo::init();
 
     // Registrar shortcodes
     LC_Shortcode_Clasificacion::register();

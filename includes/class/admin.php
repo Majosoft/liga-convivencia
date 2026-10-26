@@ -49,7 +49,7 @@ class LC_Admin {
             ],
             'liga-creus-acceso' => [
                 'titulo' => 'Acceso',
-                'tabs' => ['usuarios' => 'Usuarios', 'app' => 'App profesorado'],
+                'tabs' => ['usuarios' => 'Usuarios', 'app' => 'App profesorado', 'app_semaforo' => 'App Semáforo'],
             ],
         ];
     }
@@ -186,6 +186,11 @@ class LC_Admin {
             'sanitize_callback' => ['LC_App', 'sanitize'],
             'default' => LC_App::DEFAULTS,
         ]);
+        register_setting('lc_settings_app_semaforo', LC_App_Semaforo::OPT, [
+            'type' => 'array',
+            'sanitize_callback' => ['LC_App_Semaforo', 'sanitize'],
+            'default' => LC_App_Semaforo::DEFAULTS,
+        ]);
 
         add_settings_section('lc_section_app', 'App para el profesorado', function(){
             echo '<p>El panel de registro también se puede usar como una app instalada en el móvil, la tableta o el ordenador. '
@@ -272,6 +277,7 @@ class LC_Admin {
             'trimestres' => 'render_trimestres_field',
             'temporadas' => 'render_temporadas_field',
             'app' => 'render_app_field',
+            'app_semaforo' => 'render_app_semaforo_field',
         ];
 
         echo '<div class="lc-admin-card"><form method="post" action="options.php">';
@@ -665,10 +671,18 @@ class LC_Admin {
 
     // Pestaña Acceso > App profesorado. El icono reutiliza el selector de escudo
     // de Clases (mismo marcado y mismo JS, ver bindEscudo en admin-competiciones.js).
-    public static function render_app_field() {
-        $cfg  = LC_App::get();
-        $name = LC_App::OPT;
-        $url  = LC_App::url();
+    // App Semáforo (1.0): el mismo formulario, sobre LC_App_Semaforo.
+    public static function render_app_semaforo_field() {
+        echo '<p>App aparte, <strong>solo del Semáforo</strong>: cada profesor de '
+            . '<a href="' . esc_url(admin_url('admin.php?page=liga-creus-profesorado')) . '">Profesorado</a> la instala en su móvil '
+            . 'y al abrirla ve únicamente sus clases del día para poner los gomets. Comparte el inicio de sesión por email con el resto del panel.</p>';
+        self::render_app_field('LC_App_Semaforo');
+    }
+
+    public static function render_app_field($app = 'LC_App') {
+        $cfg  = $app::get();
+        $name = $app::OPT;
+        $url  = $app::url();
         $id   = (int) $cfg['icono'];
         $img  = $id ? wp_get_attachment_image_url($id, 'thumbnail') : '';
 
@@ -707,7 +721,7 @@ class LC_Admin {
             . '<span class="dashicons dashicons-trash" aria-hidden="true"></span></button>';
         echo '</span></div></div>';
         echo '<p class="description">Imagen <strong>cuadrada</strong> PNG de al menos 512×512 píxeles, sin fondo transparente. '
-            . 'Sin imagen se usa el icono del trofeo que trae el plugin.</p>';
+            . 'Sin imagen se usa el icono ' . ($app === 'LC_App_Semaforo' ? 'del semáforo' : 'del trofeo') . ' que trae el plugin.</p>';
         echo '</td></tr>';
 
         echo '</tbody></table>';
