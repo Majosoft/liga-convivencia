@@ -2,14 +2,19 @@
 if (!defined('ABSPATH')) { exit; }
 
 /**
- * Funciones de utilidad para el plugin Liga Creus
+ * Funciones de utilidad para el plugin Liga Convivencia
  */
 class LC_Helpers {
     
     /**
-     * Obtiene el usuario actual o 'externo' si no hay usuario
+     * Email de quien hace la petición, para la columna created_by. El
+     * profesorado entra con el token del panel, no con una cuenta de WordPress,
+     * así que se mira primero el token: antes todo quedaba como 'externo'.
      */
     public static function get_current_user_email() {
+        $tok = $_COOKIE[LC_Auth::COOKIE] ?? null;
+        $pl = $tok ? LC_Auth::parse_token($tok) : null;
+        if (!empty($pl['e'])) return $pl['e'];
         $u = wp_get_current_user();
         return $u && $u->exists() ? $u->user_email : 'externo';
     }

@@ -4,14 +4,46 @@ if (!defined('ABSPATH')) { exit; }
 class LC_REST_Semaforo {
     
     /**
-     * Calcula el total de puntos solo con gomets
+     * Puntos que aporta una semana de gomets, con la puntuación configurada en
+     * Competición > Semáforo. Los valores ya vienen con signo, así que es una
+     * suma: no hay restas cableadas aquí.
      */
     private static function calculateTotal($data) {
         $verdes = intval($data->gomets_verdes ?? $data['gomets_verdes'] ?? 0);
         $amarillos = intval($data->gomets_amarillos ?? $data['gomets_amarillos'] ?? 0);
         $rojos = intval($data->gomets_rojos ?? $data['gomets_rojos'] ?? 0);
-        
-        return ($verdes * 1) - ($amarillos * 1) - ($rojos * 3);
+
+        $pts = LC_Competiciones::get_semaforo();
+        return ($verdes * $pts['verde']) + ($amarillos * $pts['amarillo']) + ($rojos * $pts['rojo']);
+    }
+
+    /**
+     * Rehace el acumulado de TODAS las clases y semanas con la puntuación
+     * vigente. Necesario al cambiar los puntos de los gomets: la columna "total"
+     * guarda un acumulado calculado en el momento de guardar, así que sin esto
+     * las semanas antiguas conservarían la puntuación vieja y el total dejaría de
+     * corresponderse con los gomets registrados.
+     */
+    public static function recalcular_totales(){
+        global $wpdb; $p = $wpdb->prefix;
+
+        $rows = $wpdb->get_results(
+            "SELECT id, clase, gomets_verdes, gomets_amarillos, gomets_rojos
+             FROM {$p}lc_semaforo
+             ORDER BY clase ASC, iso_year ASC, iso_week ASC"
+        );
+        if (!$rows) return;
+
+        $acumulado = [];
+        foreach ($rows as $r) {
+            $nuevo = ($acumulado[$r->clase] ?? 0) + self::calculateTotal([
+                'gomets_verdes'    => $r->gomets_verdes,
+                'gomets_amarillos' => $r->gomets_amarillos,
+                'gomets_rojos'     => $r->gomets_rojos,
+            ]);
+            $wpdb->update("{$p}lc_semaforo", ['total' => $nuevo], ['id' => $r->id], ['%d'], ['%d']);
+            $acumulado[$r->clase] = $nuevo;
+        }
     }
     
     public static function register(){
@@ -134,10 +166,6 @@ class LC_REST_Semaforo {
         );
 
         $current_total = $new_total; // Empezamos con el total de la semana modificada
-        
-        // Log para debugging
-        error_log("LC Semaforo Cascada - Clase: $clase, Semana: $year-W$week, Nuevo total: $new_total");
-        error_log("LC Semaforo Cascada - Semanas posteriores encontradas: " . count($semanas_posteriores));
 
         foreach ($semanas_posteriores as $semana) {
             // El total de cada semana posterior = total de la semana anterior + gomets de esa semana
@@ -151,15 +179,13 @@ class LC_REST_Semaforo {
                 'total' => $new_total,
             ];
 
-            $result = $wpdb->update(
+            $wpdb->update(
                 "{$p}lc_semaforo",
                 $update_data,
                 ['id' => $semana->id],
                 ['%d'],
                 ['%d']
             );
-
-            error_log("LC Semaforo Cascada - Semana {$semana->iso_year}-W{$semana->iso_week}: Total=$new_total");
 
             $current_total = $new_total; // Para la siguiente iteración
         }

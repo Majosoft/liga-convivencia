@@ -2,6 +2,18 @@
 window.LC_EP = (window.LC_SETTINGS && LC_SETTINGS.endpoint) || (window.wpApiSettings && wpApiSettings.root + 'liga-creus/v1');
 window.LC_NONCE = (window.LC_SETTINGS && LC_SETTINGS.nonce) || '';
 
+// Sesión caducada (el token dura un día) o usuario dado de baja: WordPress
+// responde rest_forbidden. Sin esto el panel seguía abierto mostrando los
+// formularios vacíos, como si no hubiera nada registrado esa semana.
+function lcSesionCaducada(url, r, data){
+  if ((r.status !== 401 && r.status !== 403) || data?.code !== 'rest_forbidden') return false;
+  if (url.indexOf('/auth/') !== -1 || window.LC_SESION_CADUCADA) return false;
+  window.LC_SESION_CADUCADA = true;
+  window.alert('Tu sesión ha caducado. Vuelve a entrar con tu email.');
+  window.location.reload();
+  return true;
+}
+
 // Funciones globales para API
 window.LC_post = async function(url, body){
   const r = await fetch(url, {
@@ -11,6 +23,7 @@ window.LC_post = async function(url, body){
   });
   let data = null;
   try { data = await r.json(); } catch(_) { data = {}; }
+  lcSesionCaducada(url, r, data);
   if (!r.ok) throw new Error(data?.message || data?.error || `${r.status} ${r.statusText}`);
   return data;
 };
@@ -20,6 +33,7 @@ window.LC_get = async function(url){
   let data = {};
   try { data = await r.json(); } catch(_) { /* puede venir HTML o vacío */ }
   if (!r.ok) {
+    lcSesionCaducada(url, r, data);
     return { ok:false, status:r.status, data };
   }
   return data; // normalmente tendrá { ok:true, ... }
@@ -27,7 +41,18 @@ window.LC_get = async function(url){
 
 (function(){
   const EP = window.LC_EP;
-  const NONCE = window.LC_NONCE;
+
+  // Pestañas -> módulo (Semáforo/Partes comparten "Clase" en la barra de contexto;
+  // Deportes/Biblioteca gestionan sus propias clases por partido/actividad).
+  const MODULES = {
+    semaforo:         { ui: () => uiSemaforo(),         bind: (el, ctx) => bindSemaforo(el, ctx),         needsClase: true,  label: 'Semáforo' },
+    deportes:         { ui: () => uiDeportes(),         bind: (el, ctx) => bindDeportes(el, ctx),         needsClase: false, label: 'Deportes' },
+    partes:           { ui: () => uiPartes(),           bind: (el, ctx) => bindPartes(el, ctx),           needsClase: true,  label: 'Partes' },
+    extraordinarias:     { ui: () => uiExtraordinarias(),     bind: (el, ctx) => bindExtraordinarias(el, ctx),     needsClase: false, label: 'Extraordinarias' },
+    biblioteca:          { ui: () => uiBiblioteca(),          bind: (el, ctx) => bindBiblioteca(el, ctx),          needsClase: false, label: 'Biblioteca' },
+    tiempoAprendizaje:   { ui: () => uiTiempoAprendizaje(),   bind: (el, ctx) => bindTiempoAprendizaje(el, ctx),   needsClase: false, label: 'T. Aprendizaje' },
+  };
+  const MODULE_ORDER = ['semaforo', 'deportes', 'partes', 'extraordinarias', 'biblioteca', 'tiempoAprendizaje'];
 
   // Auto-montaje en todos los contenedores del shortcode
   document.addEventListener('DOMContentLoaded', ()=>{
@@ -38,8 +63,8 @@ window.LC_get = async function(url){
     try {
       const me = await window.LC_get(EP + '/auth/me');
       if (me && me.ok) {
-        root.innerHTML = uiSelector(me.email);
-        bindSelector(root);
+        root.innerHTML = uiShell(me.email);
+        bindShell(root);
       } else {
         root.innerHTML = uiLogin();
         bindLogin(root);
@@ -52,41 +77,15 @@ window.LC_get = async function(url){
 
   function uiLogin(){
     return `
-      <div class="lc-card">
+      <div class="lc-card lc-login-card">
         <h3 class="lc-title">Acceso para profesorado</h3>
         <div class="lc-field">
+          <label for="lc-email">Correo electrónico</label>
           <input type="email" id="lc-email" placeholder="tu@correo.edu" autocomplete="email"/>
-          <button class="lc-btn primary" id="lc-go">Entrar</button>
         </div>
-        <div id="lc-error" class="lc-alert" style="display:none"></div>
-        <p class="lc-meta">* Solo correos previamente autorizados pueden iniciar sesión.</p>
-      </div>`;
-  }
-
-  function uiSelector(email){
-    return `
-      <div class="lc-card">
-        <h3 class="lc-title">Añadir resultados</h3>
-        <div style="display: flex; justify-content:space-between">
-          <div class="lc-meta">Sesión: <strong>${email}</strong></div>
-          <div>
-            <button class="lc-btn ghost" id="lc-logout">Cerrar sesión</button>
-          </div>
-        </div>
-        <div style="margin-top:12px">
-          <label for="lc-comp" class="lc-meta" style="display:block;margin-bottom:6px">Competición</label>
-          <div class="lc-field" style="display:flex; justify-content: space-between;">
-            <div>
-              <select id="lc-comp">
-                <option value="semaforo" selected>Semáforo</option>
-                <option value="deportes">Deportes</option>
-                <option value="partes">Partes</option>
-                <option value="biblioteca">Biblioteca</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div id="lc-next" style="margin-top:4px"></div>
+        <button class="lc-btn lc-btn-primary lc-btn-block" id="lc-go" type="button">Entrar</button>
+        <div id="lc-error" class="lc-alert lc-alert-danger" style="display:none; margin-top:12px" aria-live="polite"></div>
+        <p class="lc-meta">* Solo los emails dados de alta por el administrador pueden iniciar sesión.</p>
       </div>`;
   }
 
@@ -99,67 +98,169 @@ window.LC_get = async function(url){
       err.style.display = 'none';
       const email = (inp.value||'').trim();
       if(!email){ return showErr('Introduce tu email.'); }
-      const res = await window.LC_post(EP + '/auth/login', { email });
-      if(!res.ok){ return showErr(res.error || 'No autorizado'); }
-      try { localStorage.setItem('lc_token', res.token); } catch(e){}
-      await render(root);
+      setButtonLoading(btn, true);
+      try{
+        const res = await window.LC_post(EP + '/auth/login', { email });
+        if(!res.ok){ setButtonLoading(btn, false); return showErr(res.error || 'No autorizado'); }
+        try { localStorage.setItem('lc_token', res.token); } catch(e){}
+        await render(root);
+      } catch(e){
+        // LC_post lanza también en 400/403 con el mensaje del servidor
+        // ("Este email no está autorizado"): hay que enseñarlo, no tapar todo
+        // con un error de conexión.
+        setButtonLoading(btn, false);
+        showErr(e.message || 'Error de conexión. Inténtalo de nuevo.');
+      }
     });
     inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ btn.click(); } });
   }
 
-  function bindSelector(root){
-    // Logout
-    root.querySelector('#lc-logout')?.addEventListener('click', async ()=>{
+  function uiShell(email){
+    const claseOptions = lcClases().map(c => `<option value="${c}">${c}</option>`).join('');
+    return `
+      <div class="lc-card">
+        <div class="lc-toolbar lc-shell-header">
+          <div class="lc-meta">Sesión: <strong>${email}</strong></div>
+          <button class="lc-btn lc-btn-secondary" id="lc-logout" type="button">Cerrar sesión</button>
+        </div>
+
+        <div class="lc-toolbar lc-context-bar">
+          <div class="lc-field" id="lc-context-clase-field">
+            <label for="lc-clase">Clase/Grupo</label>
+            <select id="lc-clase">${claseOptions}</select>
+          </div>
+          <div class="lc-field">
+            <label for="lc-week">Semana</label>
+            <select id="lc-week"></select>
+          </div>
+        </div>
+
+        <div class="lc-tabs" role="tablist"></div>
+
+        <div class="lc-tab-panel" id="lc-panel-content" role="tabpanel"></div>
+      </div>`;
+  }
+
+  function bindShell(root){
+    const logoutBtn   = root.querySelector('#lc-logout');
+    const claseField  = root.querySelector('#lc-context-clase-field');
+    const claseSelect = root.querySelector('#lc-clase');
+    const weekSelect  = root.querySelector('#lc-week');
+    const tabsEl      = root.querySelector('.lc-tabs');
+    const panel       = root.querySelector('#lc-panel-content');
+
+    initWeekSelect(weekSelect);
+
+    const state = { tab: MODULE_ORDER[0], dirty: false };
+    let moduleHandle = null;
+    let lastClase = claseSelect.value;
+    let lastWeek  = weekSelect.value;
+
+    function buildCtx(){
+      const wk = parseWeekInput(weekSelect.value) || {};
+      return {
+        clase: claseSelect.value,
+        year: wk.year,
+        week: wk.week,
+        onDirtyChange(isDirty){ state.dirty = !!isDirty; },
+      };
+    }
+
+    function confirmDiscardIfDirty(){
+      if (!state.dirty) return true;
+      return window.confirm('Tienes cambios sin guardar en este formulario. ¿Quieres continuar y descartarlos?');
+    }
+
+    function renderTabs(){
+      tabsEl.innerHTML = MODULE_ORDER.map(key => `
+        <button class="lc-tab${key === state.tab ? ' active' : ''}" data-tab="${key}" role="tab" aria-selected="${key === state.tab}">${MODULES[key].label}</button>
+      `).join('');
+    }
+
+    function switchTab(tab){
+      state.tab = tab;
+      state.dirty = false;
+      renderTabs();
+      claseField.style.display = MODULES[tab].needsClase ? '' : 'none';
+      panel.innerHTML = MODULES[tab].ui();
+      moduleHandle = MODULES[tab].bind(panel, buildCtx()) || null;
+    }
+
+    tabsEl.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.lc-tab');
+      if (!btn) return;
+      const tab = btn.dataset.tab;
+      if (tab === state.tab) return;
+      if (!confirmDiscardIfDirty()) return;
+      switchTab(tab);
+    });
+
+    claseSelect.addEventListener('change', ()=>{
+      if (!confirmDiscardIfDirty()){ claseSelect.value = lastClase; return; }
+      lastClase = claseSelect.value;
+      state.dirty = false;
+      moduleHandle?.refresh(buildCtx());
+    });
+
+    weekSelect.addEventListener('change', ()=>{
+      if (!confirmDiscardIfDirty()){ weekSelect.value = lastWeek; return; }
+      lastWeek = weekSelect.value;
+      state.dirty = false;
+      moduleHandle?.refresh(buildCtx());
+    });
+
+    logoutBtn.addEventListener('click', async ()=>{
+      if (!confirmDiscardIfDirty()) return;
       await window.LC_post(EP + '/auth/logout', {});
       try { localStorage.removeItem('lc_token'); } catch(e){}
       await render(root);
     });
 
-    const sel  = root.querySelector('#lc-comp');
-    const next = root.querySelector('#lc-next');
-
-  function renderComp(){
-    next.innerHTML = '';
-    switch (sel.value) {
-      case 'semaforo':
-        if (typeof uiSemaforo === 'function') {
-          next.innerHTML = uiSemaforo();
-          if (typeof bindSemaforo === 'function') bindSemaforo(next);
-        } else {
-          next.innerHTML = '<div class="lc-meta">Módulo Semáforo no disponible</div>';
-        }
-        break;
-      case 'deportes':
-        if (typeof uiDeportes === 'function') {
-          next.innerHTML = uiDeportes();
-          if (typeof bindDeportes === 'function') bindDeportes(next);
-        } else {
-          next.innerHTML = '<div class="lc-meta">Módulo Deportes no disponible</div>';
-        }
-        break;
-        case 'partes':
-          if (typeof uiPartes === 'function') {
-            next.innerHTML = uiPartes();
-            if (typeof bindPartes === 'function') bindPartes(next);
-          } else {
-            next.innerHTML = '<div class="lc-meta">Módulo Partes no disponible</div>';
-          }
-          break;
-        case 'biblioteca':
-          if (typeof uiBiblioteca === 'function') {
-            next.innerHTML = uiBiblioteca();
-            if (typeof bindBiblioteca === 'function') bindBiblioteca(next);
-          } else {
-            next.innerHTML = '<div class="lc-meta">Módulo Biblioteca no disponible</div>';
-          }
-          break;
-        default:
-          next.innerHTML = '<div class="lc-meta">Formulario en preparación.</div>';
-          break;
-    }
-    next.scrollIntoView({ behavior:'smooth', block:'start' });
+    switchTab(state.tab);
   }
-    sel.addEventListener('change', renderComp);
-    renderComp();
+
+  // Opciones del selector de semana. Cada semana muestra su trimestre y, además,
+  // van agrupadas por <optgroup>: el nombre del trimestre se ve tanto con el
+  // desplegable abierto (la cabecera del grupo) como cerrado (el sufijo de la
+  // opción elegida). Sin trimestres configurados se pintan opciones planas, para
+  // no meter un grupo "Sin trimestre" que sobra.
+  function weekOptionsHtml(weeks){
+    if (!weeks.some(w => w.trimestre)){
+      return weeks.map(w => `<option value="${w.value}">${w.label}</option>`).join('');
+    }
+    const html = [];
+    let grupoActual = null;
+    weeks.forEach(w => {
+      const grupo = w.trimestre || 'Fuera de trimestre';
+      if (grupo !== grupoActual){
+        if (grupoActual !== null) html.push('</optgroup>');
+        html.push(`<optgroup label="${grupo}">`);
+        grupoActual = grupo;
+      }
+      const sufijo = w.trimestre ? ` · ${w.trimestre}` : '';
+      html.push(`<option value="${w.value}">${w.label}${sufijo}</option>`);
+    });
+    html.push('</optgroup>');
+    return html.join('');
+  }
+
+  // Rellena el selector con las semanas de la temporada configurada (o del curso
+  // octubre->junio si no hay ninguna) y preselecciona la semana actual.
+  function initWeekSelect(selectEl){
+    const weeks = seasonWeeksFor(new Date());
+    selectEl.innerHTML = weekOptionsHtml(weeks);
+    if (!weeks.length) return;
+
+    const { year, week } = currentISOWeek();
+    const nowISO = `${year}-W${String(week).padStart(2,'0')}`;
+    if (weeks.some(w => w.value === nowISO)){ selectEl.value = nowISO; return; }
+
+    // Hoy cae fuera de la temporada: se elige el extremo más cercano en vez de
+    // dejar la primera opción. Dejarla es lo que hacía que, con el curso aún sin
+    // empezar, todo se guardara en la primera semana del curso ANTERIOR sin que
+    // nada lo advirtiera, y esos registros luego no salían al filtrar.
+    const orden = (v) => { const p = parseWeekInput(v); return p ? p.year * 100 + p.week : 0; };
+    const ahora = year * 100 + week;
+    selectEl.value = ahora < orden(weeks[0].value) ? weeks[0].value : weeks[weeks.length - 1].value;
   }
 })();

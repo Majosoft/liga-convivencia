@@ -1,280 +1,69 @@
-/* ===== ESTILOS PARA CLASIFICACIÓN ===== */
+/* ==========================================================================
+   Liga Convivencia — Clasificación pública
+   Estilos específicos de esta vista. Los componentes reutilizables
+   (botones, pestañas, tablas, alertas...) viven en tokens.css y son
+   los mismos que usa el panel de profesorado.
+   ========================================================================== */
 
-#lc-clasificacion-container {
-  max-width: 1200px;
+:root{ --lc-container-max: 1200px; }
+
+#lc-clasificacion-container{
+  max-width: var(--lc-container-max);
   margin: 0 auto;
-  padding: 20px;
-  font-family: 'Enriqueta', serif;
+  padding: var(--lc-space-5) var(--lc-space-4);
 }
 
 /* Loading */
-.lc-loading {
+.lc-loading{
   text-align: center;
-  padding: 40px;
+  padding: var(--lc-space-6);
 }
 
-.lc-spinner {
+.lc-loading .lc-spinner{
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px; 
+  border-width: 4px;
+  margin: 0 auto var(--lc-space-4);
+  color: var(--lc-color-primary);
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+/* Pestañas centradas en esta vista (el componente .lc-tabs/.lc-tab es el mismo del panel) */
+.lc-tabs{ justify-content: center; margin-bottom: var(--lc-space-5); }
 
-/* Título */
-.lc-title {
-  text-align: center;
-  margin-bottom: 30px;
-  font-size: 32px;
+/* Sub-pestañas (desglose por deporte/actividad dentro de Deportes/Biblioteca) */
+.lc-tabs-sub{ justify-content: flex-start; margin-bottom: var(--lc-space-4); }
+.lc-tabs-sub .lc-tab{ font-size: 13px; padding: 8px var(--lc-space-3); }
+
+/* Posiciones del podio */
+.lc-table tbody tr:nth-child(1){ background: var(--lc-color-warning-light); }
+.lc-table tbody tr:nth-child(2){ background: var(--lc-color-neutral-100); }
+.lc-table tbody tr:nth-child(3){ background: #FFF1E6; }
+
+.lc-table td:first-child{ font-weight: 800; font-size: 18px; }
+.lc-table tbody tr:nth-child(1) td:first-child::before{ content: "🥇 "; }
+.lc-table tbody tr:nth-child(2) td:first-child::before{ content: "🥈 "; }
+.lc-table tbody tr:nth-child(3) td:first-child::before{ content: "🥉 "; }
+
+/* Columna CLASE: solo el peso tipográfico. La alineación la heredan de
+   .lc-table td (centrada) y del propio .lc-clase-cell. */
+.lc-table td:nth-child(2){ font-weight: 700; }
+
+.lc-table td.lc-total{
+  background: var(--lc-color-success-light);
+  color: var(--lc-color-success);
   font-weight: 800;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-  letter-spacing: 1px;
 }
 
-/* Tabs */
-.lc-tabs {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-  border-bottom: 2px solid #e5e7eb;
-}
+.lc-table th.lc-total{ background: var(--lc-color-success); }
 
-.lc-tab {
-  background: none;
-  border: none;
-  padding: 12px 24px;
-  margin: 0 4px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  color: #6b7280;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.lc-tab:hover {
-  color: #3b82f6;
-  background: #f8fafc;
-}
-
-.lc-tab.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
-  background: #f8fafc;
-}
-
-/* Tab Content */
-.lc-tab-content {
-  display: none;
-}
-
-.lc-tab-content.active {
-  display: block;
-}
-
-/* Tabla */
-.lc-table-container {
-  overflow-x: auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  background: white;
-}
-
-.lc-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 16px;
-}
-
-.lc-table th {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 16px 12px;
+.lc-footer{
   text-align: center;
-  font-weight: 700;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.lc-table th.lc-total {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.lc-table td {
-  padding: 18px 16px;
-  text-align: center;
-  border-bottom: 1px solid #f3f4f6;
-  font-weight: 600;
-  vertical-align: middle;
-}
-
-.lc-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-/* Posiciones */
-.lc-table tbody tr:nth-child(1) {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-}
-
-.lc-table tbody tr:nth-child(2) {
-  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
-}
-
-.lc-table tbody tr:nth-child(3) {
-  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
-}
-
-/* Posición */
-.lc-table td:first-child {
-  font-weight: 800;
-  font-size: 20px;
-  color: #1f2937;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-}
-
-.lc-table tbody tr:nth-child(1) td:first-child::before {
-  content: "🥇 ";
-}
-
-.lc-table tbody tr:nth-child(2) td:first-child::before {
-  content: "🥈 ";
-}
-
-.lc-table tbody tr:nth-child(3) td:first-child::before {
-  content: "🥉 ";
-}
-
-/* Clase */
-.lc-table td:nth-child(2) {
-  font-weight: 700;
-  color: #1f2937;
-  font-size: 18px;
-}
-
-/* Puntos */
-.lc-table td:nth-child(n+3) {
-  font-weight: 800;
-  font-size: 18px;
-  color: #1f2937;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-  min-width: 60px;
-}
-
-.lc-table td.lc-total {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  color: #059669;
-  font-weight: 900;
-  font-size: 20px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-  border: 2px solid #bbf7d0;
-  border-radius: 8px;
-}
-
-/* Footer */
-.lc-footer {
-  text-align: center;
-  margin-top: 30px;
-  padding: 20px;
-  color: #6b7280;
-  font-size: 14px;
-}
-
-/* Error */
-.lc-error {
-  text-align: center;
-  padding: 40px;
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  margin: 20px 0;
-}
-
-/* Estilos específicos para números */
-.lc-table td:not(:first-child):not(:nth-child(2)) {
-  font-family: 'Courier New', monospace;
-  font-weight: 800;
-  font-size: 18px;
-  color: #1f2937;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  margin: 2px;
-  min-width: 50px;
+  margin-top: var(--lc-space-5);
+  color: var(--lc-color-neutral-500);
+  font-size: 13px;
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  #lc-clasificacion-container {
-    padding: 10px;
-  }
-  
-  .lc-title {
-    font-size: 28px;
-    margin-bottom: 20px;
-  }
-  
-  .lc-tabs {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  .lc-tab {
-    padding: 8px 16px;
-    font-size: 14px;
-    margin: 0 2px;
-  }
-  
-  .lc-table {
-    font-size: 14px;
-  }
-  
-  .lc-table th,
-  .lc-table td {
-    padding: 12px 8px;
-  }
-  
-  .lc-table td:not(:first-child):not(:nth-child(2)) {
-    font-size: 16px;
-    min-width: 40px;
-  }
-  
-  .lc-table th {
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 480px) {
-  .lc-table th,
-  .lc-table td {
-    padding: 8px 4px;
-  }
-  
-  .lc-table td:not(:first-child):not(:nth-child(2)) {
-    font-size: 14px;
-    min-width: 35px;
-  }
-  
-  .lc-table {
-    font-size: 12px;
-  }
-  
-  .lc-table th {
-    font-size: 10px;
-  }
-  
-  .lc-tab {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
+@media (max-width: 768px){
+  #lc-clasificacion-container{ padding: var(--lc-space-3); }
 }

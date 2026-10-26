@@ -1,136 +1,229 @@
 // UI Partes
+// Cada parte es un registro propio asociado a un alumno (o a toda la clase si
+// no se elige ninguno), en vez de los tres
+// contadores por clase que había antes. Mismo contrato que ui-semaforo.js:
+// uiPartes() pinta los campos y bindPartes(container, ctx) recibe
+// { clase, year, week, onDirtyChange } y devuelve { refresh(ctx) }.
+
+const PT_TIPOS = [
+  { value: 'positivo', label: 'Positivo', icono: '✅', clave: 'positivo' },
+  { value: 'leve',     label: 'Leve',     icono: '⚠️', clave: 'leve' },
+  { value: 'grave',    label: 'Grave',    icono: '❌', clave: 'grave' },
+];
+
 function uiPartes(){
+  const pts = lcPuntosPartes();
+  const tipoOptions = PT_TIPOS
+    .map(t => `<option value="${t.value}">${t.icono} ${t.label} (${lcTextoPuntos(pts[t.clave]).replace(' cada uno', '')})</option>`)
+    .join('');
+
   return `
-    <div style="margin-top:16px">
-      <h4 class="lc-title" style="font-size:18px">Partes – registro semanal</h4>
+    <div>
+      <h4 class="lc-module-title">Partes – registro semanal</h4>
 
-      <div class="lc-field">
-        <label for="pt-clase" class="lc-meta" style="min-width:110px">Clase/Grupo</label>
-        <select id="pt-clase">
-          <option value="1ºA" selected>1ºA</option>
-          <option value="1ºB">1ºB</option>
-          <option value="2ºA">2ºA</option>
-          <option value="2ºB">2ºB</option>
-          <option value="3ºA">3ºA</option>
-          <option value="3ºB">3ºB</option>
-          <option value="4ºA">4ºA</option>
-          <option value="4ºB">4ºB</option>
-        </select>
+      <div class="lc-meta" id="pt-compweek-label"></div>
+
+      <div class="lc-module-split">
+      <div class="lc-module-form">
+
+        <div class="lc-form-grid">
+          <div class="lc-field">
+            <label for="pt-alumno">Alumno de <span id="pt-clase-label"></span> (opcional)</label>
+            ${alumnoPickerHtml('pt-alumno')}
+          </div>
+          <div class="lc-field">
+            <label for="pt-tipo">Tipo de parte</label>
+            <select id="pt-tipo">${tipoOptions}</select>
+          </div>
+        </div>
+
+        <div class="lc-field">
+          <label for="pt-notas">Notas</label>
+          <textarea id="pt-notas" placeholder="Motivo del parte"></textarea>
+        </div>
+
+        <div class="lc-actions">
+          <button class="lc-btn lc-btn-primary" id="pt-save" type="button">Registrar parte</button>
+          <span id="pt-msg" class="lc-status" aria-live="polite"></span>
+        </div>
+
       </div>
 
-      <div class="lc-field">
-        <label for="pt-week" class="lc-meta" style="min-width:110px">Semana</label>
-        <select id="pt-week"></select>
-        <div class="lc-meta" id="pt-compweek-label"></div>
-      </div>
+      <div class="lc-module-side">
+        <div class="lc-panel-section">
+          <h5 class="lc-section-title">Partes de la semana</h5>
+          <div id="pt-resumen" class="lc-meta"></div>
+          <div id="pt-list" class="lc-meta">Sin partes esta semana.</div>
+        </div>
 
-      <div class="lc-field">
-        <label for="pt-count" class="lc-meta" style="min-width:110px">Nº de partes</label>
-        <input type="number" id="pt-count" value="0" min="0"/>
-      </div>
-
-      <div class="lc-field">
-        <label for="pt-notas" class="lc-meta" style="min-width:110px">Notas</label>
-        <textarea id="pt-notas" placeholder="Observaciones"></textarea>
-      </div>
-
-      <div style="display:flex; align-items:center; justify-content:center; margin:24px 0">
-        <div class="lc-field" style="justify-content:flex-start">
-          <button class="lc-btn primary" id="pt-save" type="button" style="background-color:green;border-radius:6px;width:auto">Guardar</button>
-          <span id="pt-msg" class="lc-meta"></span>
+        <div class="lc-panel-section">
+          <h5 class="lc-section-title">Clasificación – Partes</h5>
+          <div id="pt-ranking" class="lc-meta">Cargando…</div>
         </div>
       </div>
-    </div>
-  `;
+
+      </div>
+    </div>`;
 }
 
-function bindPartes(container){
-  const clase = container.querySelector('#pt-clase');
-  const week  = container.querySelector('#pt-week');
-  const count = container.querySelector('#pt-count');
-  const notas = container.querySelector('#pt-notas');
-  const btn   = container.querySelector('#pt-save');
-  const msg   = container.querySelector('#pt-msg');
-  const label = container.querySelector('#pt-compweek-label');
+function bindPartes(container, ctx){
+  function markDirty(){ ctx.onDirtyChange?.(true); }
 
-  // rellenar semanas de temporada (reutilizamos seasonWeeksFor del plugin)
-  (function initWeeks(){
-    const w = seasonWeeksFor(new Date());
-    week.innerHTML = w.map(x => `<option value="${x.value}">${x.label}</option>`).join('');
-    // Selección por defecto = semana ISO actual si cae en temporada
-    const today = new Date();
-    const d = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    const dayNr = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - dayNr + 3);
-    const firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-    const dayDiff = (d - firstThu)/86400000;
-    const wnum = 1 + Math.floor(dayDiff/7);
-    const nowISO = `${d.getUTCFullYear()}-W${String(wnum).padStart(2,'0')}`;
-    const opt = Array.from(week.options).find(o => o.value === nowISO);
-    if (opt) week.value = nowISO;
-  })();
+  const tipo       = container.querySelector('#pt-tipo');
+  const notas      = container.querySelector('#pt-notas');
+  const btn        = container.querySelector('#pt-save');
+  const msg        = container.querySelector('#pt-msg');
+  const label      = container.querySelector('#pt-compweek-label');
+  const claseLabel = container.querySelector('#pt-clase-label');
+  const list       = container.querySelector('#pt-list');
+  const resumen    = container.querySelector('#pt-resumen');
+  const rankingEl  = container.querySelector('#pt-ranking');
+  const picker     = bindAlumnoPicker(container.querySelector('#pt-alumno').closest('[data-alumno-picker]'), {
+    onChange: markDirty,
+    opcional: 'Toda la clase',
+  });
 
-  function setMsg(t,bad=false){ msg.textContent=t||''; msg.style.color = bad ? '#b91c1c' : '#6b7280'; }
+  tipo.addEventListener('change', markDirty);
+  notas.addEventListener('input', markDirty);
 
   function updateLabel(){
-    const monday = dateFromWeekInput(week.value);
-    if(!monday){ label.textContent=''; return; }
+    claseLabel.textContent = ctx.clase || '';
+    if(!ctx.year || !ctx.week){ label.textContent = ''; return; }
+    const monday = dateFromWeekInput(`${ctx.year}-W${String(ctx.week).padStart(2,'0')}`);
+    if(!monday){ label.textContent = ''; return; }
     const cw = compWeekOf(monday);
     const season = `${cw.seasonYear}-${String(cw.seasonYear+1).slice(-2)}`;
     label.textContent = `Semana de competición: ${cw.week} · Temporada ${season}`;
   }
 
+  function renderResumen(data){
+    const pts = lcPuntosPartes();
+    const partes = PT_TIPOS
+      .map(t => `${t.icono} ${data.resumen?.[t.value] || 0} ${t.label.toLowerCase()}`)
+      .join(' · ');
+    resumen.textContent = `${partes} — Total: ${data.puntos || 0} puntos`;
+  }
+
+  function renderList(partes){
+    if (!partes || !partes.length){
+      list.innerHTML = '<div class="lc-meta">Sin partes esta semana.</div>';
+      return;
+    }
+    const etiqueta = Object.fromEntries(PT_TIPOS.map(t => [t.value, `${t.icono} ${t.label}`]));
+    const rows = partes.map(p => `
+      <tr>
+        <td>${p.alumno}</td>
+        <td>${etiqueta[p.tipo] || p.tipo}</td>
+        <td>${p.puntos}</td>
+        <td>${p.notas || ''}</td>
+        <td><button type="button" class="lc-btn lc-btn-secondary lc-btn-xs lc-parte-borrar" data-id="${p.id}">Borrar</button></td>
+      </tr>`).join('');
+
+    list.innerHTML = `
+      <div class="lc-table-container">
+        <table class="lc-table lc-partes-table">
+          <thead><tr><th>Alumno</th><th>Tipo</th><th>Puntos</th><th>Notas</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+
+    list.querySelectorAll('.lc-parte-borrar').forEach(b => {
+      b.addEventListener('click', () => borrar(parseInt(b.dataset.id, 10)));
+    });
+  }
+
   async function loadData(){
-    setMsg('');
-    const wk = parseWeekInput(week.value);
-    const cls = (clase.value||'').trim();
-    if(!cls || !wk){ return; }
-    try {
-      const q = new URLSearchParams({clase:cls, year:wk.year, week:wk.week});
+    if(!ctx.clase || !ctx.year || !ctx.week){ return; }
+    await picker.setClase(ctx.clase);
+    try{
+      const q = new URLSearchParams({ clase: ctx.clase, year: ctx.year, week: ctx.week });
       const res = await window.LC_get(window.LC_EP + '/partes?' + q.toString());
-      if(res && res.ok && res.data){
-        count.value = res.data.partes ?? 0;
-        notas.value = res.data.notas ?? '';
-        setMsg('Datos cargados');
-      } else {
-        count.value = 0;
-        notas.value = '';
-        setMsg('Nueva semana');
+      if(res && res.ok){
+        renderList(res.partes);
+        renderResumen(res);
       }
+      ctx.onDirtyChange?.(false);
     } catch(e){
-      setMsg('Error al cargar', true);
+      setStatus(msg, 'Error al cargar', 'error');
       console.error('GET /partes', e);
+    }
+    loadRanking();
+  }
+
+  async function loadRanking(){
+    rankingEl.innerHTML = 'Cargando…';
+    try{
+      const res = await window.LC_get(window.LC_EP + '/clasificacion');
+      const clases = (res?.clasificacion || [])
+        .map(c => ({ clase: c.clase, puntos: c.partes || 0, escudo_url: c.escudo_url }))
+        .sort((a, b) => b.puntos - a.puntos);
+      rankingEl.innerHTML = renderRankingConToggle(clases, res?.alumnos_partes);
+      bindRankingToggles(rankingEl);
+    } catch(e){
+      rankingEl.innerHTML = '<div class="lc-meta">Error al cargar la clasificación.</div>';
+      console.error('GET /clasificacion (partes)', e);
     }
   }
 
-  week.addEventListener('change', ()=>{ updateLabel(); loadData(); });
-  clase.addEventListener('change', loadData);
-
-  // inicial
-  updateLabel();
-  loadData();
+  async function borrar(id){
+    if (!id || !window.confirm('¿Borrar este parte?')) return;
+    try{
+      const r = await fetch(window.LC_EP + '/partes', {
+        method: 'DELETE',
+        headers: {'Content-Type':'application/json','X-WP-Nonce': window.LC_NONCE},
+        body: JSON.stringify({ id }),
+      });
+      const res = await r.json();
+      if (res && res.ok){
+        renderList(res.partes);
+        renderResumen(res);
+        setStatus(msg, 'Parte borrado', 'info');
+        loadRanking();
+      } else {
+        setStatus(msg, res?.error || 'No se pudo borrar', 'error');
+      }
+    } catch(e){
+      setStatus(msg, 'Error al borrar', 'error');
+      console.error('DELETE /partes', e);
+    }
+  }
 
   btn.addEventListener('click', async ()=>{
-    setMsg('');
-    const wk = parseWeekInput(week.value);
-    const cls = (clase.value||'').trim();
-    if(!cls)  return setMsg('Indica la clase', true);
-    if(!wk)   return setMsg('Semana inválida', true);
+    if(!ctx.clase || !ctx.year || !ctx.week) return;
+
+    setStatus(msg, '', 'info');
+    setButtonLoading(btn, true);
 
     const payload = {
-      clase: cls, year:wk.year, week:wk.week,
-      partes: parseInt(count.value||0, 10),
-      notas: (notas.value||'')
+      clase: ctx.clase, year: ctx.year, week: ctx.week,
+      alumno_id: picker.value(),
+      tipo: tipo.value,
+      notas: (notas.value||''),
     };
     try{
       const res = await window.LC_post(window.LC_EP + '/partes', payload);
+      setButtonLoading(btn, false);
       if(res && res.ok){
-        setMsg('Guardado ✅');
+        renderList(res.partes);
+        renderResumen(res);
+        notas.value = '';
+        setStatus(msg, 'Parte registrado ✅', 'success');
+        ctx.onDirtyChange?.(false);
+        loadRanking();
       } else {
-        setMsg('Error al guardar', true);
+        setStatus(msg, res?.error || 'Error al guardar', 'error');
       }
     }catch(e){
-      setMsg('Error al guardar', true);
+      setButtonLoading(btn, false);
+      setStatus(msg, 'Error al guardar: ' + (e.message||''), 'error');
       console.error('POST /partes', payload, e);
     }
   });
+
+  updateLabel();
+  loadData();
+
+  return {
+    refresh(newCtx){ ctx = newCtx; updateLabel(); loadData(); }
+  };
 }

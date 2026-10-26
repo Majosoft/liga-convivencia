@@ -1,0 +1,503 @@
+/* Ajustes > Liga Convivencia — todo escopado bajo .wrap a propósito: este fichero
+   solo se encola en nuestras 4 páginas (ver LC_Admin::enqueue()), pero aun así
+   conviene no tocar selectores genéricos de WordPress fuera del contenido de
+   la página (la barra de admin y el menú lateral viven fuera de .wrap). */
+
+:root{
+  --lc-color-primary: #4F46E5;
+  --lc-color-primary-hover: #4338CA;
+  --lc-color-primary-light: #EEF2FF;
+
+  --lc-color-danger: #DC2626;
+  --lc-color-danger-light: #FEF2F2;
+  --lc-color-danger-border: #FECACA;
+
+  --lc-color-success: #059669;
+  --lc-color-success-light: #ECFDF5;
+  --lc-color-success-border: #A7F3D0;
+
+  --lc-color-neutral-50:  #F8FAFC;
+  --lc-color-neutral-100: #F1F5F9;
+  --lc-color-neutral-200: #E2E8F0;
+  --lc-color-neutral-300: #CBD5E1;
+  --lc-color-neutral-500: #64748B;
+  --lc-color-neutral-600: #475569;
+  --lc-color-neutral-700: #334155;
+  --lc-color-neutral-900: #0F172A;
+
+  --lc-radius-sm: 10px;
+  --lc-radius-md: 14px;
+  --lc-radius-lg: 20px;
+  --lc-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+  --lc-shadow-md: 0 10px 24px rgba(15, 23, 42, .08);
+}
+
+/* ===== Cabecera de página ===== */
+.wrap h1{
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--lc-color-neutral-900);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--lc-color-neutral-200);
+  margin-bottom: 20px;
+}
+
+/* ===== Pestañas internas (sustituye el look de carpeta de WP por pills) ===== */
+.wrap .nav-tab-wrapper{
+  border-bottom: none;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding-bottom: 4px;
+}
+
+.wrap .nav-tab{
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: var(--lc-color-neutral-600);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 18px;
+  margin: 0;
+  transition: background-color .15s ease, color .15s ease;
+}
+
+.wrap .nav-tab:hover{
+  background: var(--lc-color-neutral-100);
+  color: var(--lc-color-neutral-900);
+}
+
+.wrap .nav-tab-active,
+.wrap .nav-tab-active:hover{
+  background: var(--lc-color-primary);
+  color: #fff;
+}
+
+/* ===== Tarjeta contenedora del formulario ===== */
+.lc-admin-card{
+  background: #fff;
+  border: 1px solid var(--lc-color-neutral-200);
+  border-radius: var(--lc-radius-lg);
+  box-shadow: var(--lc-shadow-md);
+  padding: 28px;
+  max-width: 1100px;
+}
+
+.lc-admin-card h2:first-child,
+.lc-admin-card h3:first-child{
+  margin-top: 0;
+}
+
+.lc-admin-card h3{
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lc-color-neutral-900);
+  margin: 28px 0 10px;
+  padding-top: 20px;
+  border-top: 1px solid var(--lc-color-neutral-200);
+}
+.lc-admin-card h3:first-of-type{ border-top: none; padding-top: 0; }
+
+/* Secciones generadas por add_settings_section()/do_settings_sections() */
+.lc-admin-card > h2{
+  font-size: 16px;
+  margin: 0 0 6px;
+}
+.lc-admin-card > p{
+  color: var(--lc-color-neutral-600);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 760px;
+  margin: 0 0 18px;
+}
+.lc-admin-card table.form-table{ margin-top: 0; }
+
+/* Las tablas editables (Deportes/Actividades/Clases/Trimestres/Temporadas) ya
+   no pasan por add_settings_field(), así que no generan ningún <th> que
+   ocultar (ver LC_Admin::render_settings_page()). La pestaña Usuarios de
+   Acceso tampoco: tiene su propio formulario fuera de .lc-settings-fields
+   (igual que el asistente "Nueva temporada"), así que esta regla ya no
+   afecta a ningún campo actual — se deja por si un futuro campo simple
+   vuelve a apoyarse en add_settings_field().
+   Los !important son necesarios: el breakpoint "móvil" de WordPress para
+   .form-table (th/td apilados, ver más abajo el mismo caso con .widefat)
+   usa !important y si no lo igualamos aquí el th reaparece como una línea
+   suelta sobre el campo. */
+.lc-settings-fields table.form-table > tbody > tr > th{
+  display: none !important;
+}
+.lc-settings-fields table.form-table > tbody > tr > td{
+  display: block !important;
+  width: 100% !important;
+  padding: 0 0 24px !important;
+  margin: 0 !important;
+}
+.lc-settings-fields table.form-table > tbody > tr:last-child > td{
+  padding-bottom: 0 !important;
+}
+
+/* ===== Tablas editables (Deportes/Actividades/Clases/Temporadas/Trimestres) =====
+   Forzamos el layout de tabla real independientemente del breakpoint "móvil"
+   de WordPress (.widefat td{display:block} a partir de 782px), que con zoom
+   alto en el navegador puede activarse también en pantallas grandes. */
+.wrap .lc-admin-table,
+.wrap .lc-admin-table thead,
+.wrap .lc-admin-table tbody{ display: table !important; width: 100%; }
+.wrap .lc-admin-table thead{ display: table-header-group !important; }
+.wrap .lc-admin-table tbody{ display: table-row-group !important; }
+.wrap .lc-admin-table tr{ display: table-row !important; }
+.wrap .lc-admin-table th,
+.wrap .lc-admin-table td{ display: table-cell !important; }
+
+/* Las filas se dibujan como tarjetas independientes (separadas por
+   border-spacing vertical, sin separación horizontal entre columnas) en vez
+   de un bloque de tabla continuo: cada td redondea su esquina exterior
+   (primera/última columna) y comparte borde con el resto de la fila, dando
+   el efecto de "fila-tarjeta" sin tocar el marcado PHP.
+   table.widefat trae su propio borde+sombra del core de WP (wp-admin/css),
+   con más especificidad que .lc-admin-table por incluir el selector de
+   elemento — hay que anularlo explícitamente o rodea toda la tabla. */
+.wrap table.widefat.lc-admin-table{
+  border: none;
+  box-shadow: none;
+}
+.lc-admin-table{
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.lc-admin-table thead th{
+  background: transparent;
+  color: var(--lc-color-neutral-500);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  text-align: left;
+  padding: 0 16px 8px;
+  border: none;
+}
+
+.lc-admin-table tbody td{
+  vertical-align: middle;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--lc-color-neutral-50);
+  border-top: 1px solid var(--lc-color-neutral-200);
+  border-bottom: 1px solid var(--lc-color-neutral-200);
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.lc-admin-table tbody td:first-child{
+  border-left: 1px solid var(--lc-color-neutral-200);
+  border-top-left-radius: var(--lc-radius-md);
+  border-bottom-left-radius: var(--lc-radius-md);
+}
+.lc-admin-table tbody td:last-child{
+  border-right: 1px solid var(--lc-color-neutral-200);
+  border-top-right-radius: var(--lc-radius-md);
+  border-bottom-right-radius: var(--lc-radius-md);
+}
+
+.lc-admin-table tbody tr:hover td{
+  background: #fff;
+  border-color: var(--lc-color-primary);
+  box-shadow: var(--lc-shadow-sm);
+  align-items: center;
+}
+
+/* Solo un grupo de parámetros visible a la vez por fila, el que corresponda
+   al Modo seleccionado. !important porque ya hemos visto en este fichero que
+   el breakpoint "móvil" de WordPress fuerza estilos con !important sobre
+   elementos dentro de .widefat/.form-table; sin esto, dos grupos pueden
+   quedar visibles a la vez y la fila se ve descolocada. */
+.lc-admin-table .lc-admin-param { display: none !important; }
+.lc-admin-table tr[data-modo="enfrentamiento"] .lc-admin-param-enfrentamiento { 
+  display: flex !important; 
+}
+/* El modo "alumnos" puntúa como un enfrentamiento (victoria/empate/derrota),
+   solo cambia que los contendientes son alumnos en vez de clases enteras. */
+.lc-admin-table tr[data-modo="alumnos"] .lc-admin-param-enfrentamiento {
+  display: flex !important;
+}
+.lc-admin-table tr[data-modo="individual"] .lc-admin-param-individual { display: flex !important; }
+.lc-admin-table tr[data-modo="participantes"] .lc-admin-param-participantes { display: flex !important; }
+
+/* Cada parámetro (Victoria/Empate/Derrota, Orden/Puntos...) es un bloque
+   etiqueta-encima-de-control. El grupo nunca rompe línea: al haber solo un
+   grupo visible por fila siempre cabe, y así la fila queda en una sola línea
+   con la misma altura que el resto de columnas (como en el panel de Clases),
+   en vez de apilarse verticalmente. */
+.lc-param-group{
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.lc-param-field{
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.lc-param-field label{
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lc-color-neutral-500);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+
+.lc-param-field input[type="number"]{
+  width: 56px;
+}
+
+.lc-param-field input[type="text"]{
+  width: 120px;
+}
+
+.lc-param-field select{
+  max-width: 170px;
+}
+
+.lc-param-field textarea{
+  width: 200px;
+}
+
+.lc-admin-table input[type="text"],
+.lc-admin-table input[type="date"],
+.lc-admin-table input[type="number"],
+.lc-admin-table select,
+.lc-admin-table textarea{
+  border: 1px solid var(--lc-color-neutral-300);
+  border-radius: var(--lc-radius-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  margin: 2px 0;
+}
+
+/* El atajo "padding" de arriba pisa el padding-right que WordPress reserva para
+   pintar la flecha del desplegable, y el texto acaba pasando por debajo de ella.
+   Se lo devolvemos aquí. */
+.lc-admin-table select{
+  padding-right: 30px;
+}
+
+/* El Modo es la etiqueta más larga de la fila ("Enfrentamiento (clase A vs B)"):
+   con un ancho mínimo propio no queda apretado contra la flecha. */
+.lc-admin-table .lc-admin-modo{
+  min-width: 250px;
+}
+
+.lc-admin-table input:focus-visible,
+.lc-admin-table select:focus-visible,
+.lc-admin-table textarea:focus-visible{
+  outline: 2px solid var(--lc-color-primary);
+  outline-offset: 1px;
+  border-color: var(--lc-color-primary);
+}
+
+.lc-admin-table input[type="checkbox"]{
+  width: 18px;
+  height: 18px;
+  accent-color: var(--lc-color-primary);
+}
+
+/* Casilla "Activo" y botón "Eliminar" centrados en su columna */
+.lc-admin-table td:has(> input[type="checkbox"]:only-child){ text-align: center; }
+.lc-admin-table td:has(> button.lc-admin-remove-row:only-child){ text-align: center; }
+
+/* Miniatura a la izquierda y sus acciones en columna al lado. El contenedor flex
+   es este div y no el <td>, porque los td de estas tablas están forzados a
+   "display: table-cell !important" más arriba (diseño de fila-tarjeta).
+   Sin flex-wrap: los botones no deben caer debajo de la imagen. */
+.lc-escudo-wrap{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lc-escudo-preview{
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border: 1px solid var(--lc-color-neutral-200);
+  border-radius: var(--lc-radius-sm);
+  background: #fff;
+  flex-shrink: 0;
+}
+
+/* Sin escudo solo se ofrece subirlo; con escudo, la miniatura y Editar/Quitar.
+   El estado lo pone PHP al pintar la fila y lo actualiza admin-competiciones.js. */
+.lc-escudo-cell.is-empty .lc-escudo-wrap,
+.lc-escudo-cell.has-escudo .lc-escudo-select{
+  display: none;
+}
+
+/* Editar arriba y Quitar abajo, en columna a la derecha de la miniatura */
+.lc-escudo-acciones{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Botones cuadrados solo con icono (el texto vive en aria-label/title) */
+.wrap .lc-escudo-edit,
+.wrap .lc-escudo-remove{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 33px;
+  height: 33px;
+  min-height: 0;
+  padding: 0;
+  line-height: 1;
+}
+.wrap .lc-escudo-edit .dashicons,
+.wrap .lc-escudo-remove .dashicons{
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  line-height: 1;
+}
+
+/* ===== Botones ===== */
+.wrap .button,
+.wrap input[type="submit"]{
+  border-radius: var(--lc-radius-sm);
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.wrap .button-primary,
+.wrap input[type="submit"].button-primary{
+  background: var(--lc-color-primary);
+  border-color: var(--lc-color-primary);
+}
+.wrap .button-primary:hover,
+.wrap input[type="submit"].button-primary:hover{
+  background: var(--lc-color-primary-hover);
+  border-color: var(--lc-color-primary-hover);
+}
+
+.wrap .lc-admin-remove-row,
+.wrap .lc-escudo-remove{
+  color: var(--lc-color-danger);
+  border-color: var(--lc-color-danger-border);
+  background: var(--lc-color-danger-light);
+}
+.wrap .lc-admin-remove-row:hover,
+.wrap .lc-escudo-remove:hover{
+  background: var(--lc-color-danger-light);
+  border-color: var(--lc-color-danger);
+}
+
+/* Barra de acciones sobre una tabla: alinea su botón a la derecha */
+.lc-admin-toolbar{
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+/* Botones "+ Añadir X": estilo discreto tipo "añadir elemento" */
+.wrap button[id^="lc-admin-add-"],
+.wrap button[id^="lc-wizard-add-"]{
+  border: 1px dashed var(--lc-color-neutral-300);
+  background: var(--lc-color-neutral-50);
+  color: var(--lc-color-primary);
+}
+.wrap button[id^="lc-admin-add-"]:hover,
+.wrap button[id^="lc-wizard-add-"]:hover{
+  background: var(--lc-color-primary-light);
+  border-color: var(--lc-color-primary);
+}
+
+/* ===== Checklist del asistente "Empezar nueva temporada" ===== */
+.lc-checklist{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.lc-checklist-item{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--lc-color-neutral-200);
+  border-radius: var(--lc-radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+
+.lc-checklist-item:hover{ background: var(--lc-color-neutral-50); }
+
+.lc-checklist-item input[type="checkbox"]{
+  width: 16px;
+  height: 16px;
+  accent-color: var(--lc-color-primary);
+  flex-shrink: 0;
+}
+
+/* ===== Pestaña Acceso > Usuarios ===== */
+.lc-badge{
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.lc-badge-success{
+  background: var(--lc-color-success-light);
+  color: var(--lc-color-success);
+  border: 1px solid var(--lc-color-success-border);
+}
+.lc-badge-warning{
+  background: var(--lc-color-danger-light);
+  color: var(--lc-color-danger);
+  border: 1px solid var(--lc-color-danger-border);
+}
+
+.lc-usuario-acciones{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.lc-usuario-delete-form{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.lc-usuario-form{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ===== Firma del desarrollador ===== */
+.lc-admin-signature{
+  color: var(--lc-color-neutral-500);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  margin: 18px 0 0;
+}
+
+/* ===== Avisos ===== */
+.wrap .notice{
+  border-radius: var(--lc-radius-sm);
+  border-left-width: 4px;
+}
+.wrap .notice-success{ border-left-color: var(--lc-color-success); }
+.wrap .notice-error{ border-left-color: var(--lc-color-danger); }

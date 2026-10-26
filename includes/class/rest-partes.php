@@ -1,13 +1,34 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
+/**
+ * Partes de conducta: una fila por parte, asociada al alumno que lo recibe o,
+ * con alumno_id = 0, a toda la clase.
+ *
+ * Sustituye al modelo anterior, que guardaba contadores agregados por clase y
+ * semana en lc_partes. Los puntos de la clase salen ahora de sumar los partes de
+ * sus alumnos, así que el total por clase se sigue calculando igual de bien y
+ * además se puede hacer un ranking por alumno.
+ */
 class LC_REST_Partes {
-    
+
+    const TIPOS = ['positivo', 'leve', 'grave'];
+
+    private static function tabla() {
+        global $wpdb;
+        return $wpdb->prefix . 'lc_partes_alumnos';
+    }
+
+    /** Puntos de un tipo de parte, según Competición > Partes. */
+    private static function puntos_de($tipo) {
+        $pts = LC_Competiciones::get_partes();
+        return isset($pts[$tipo]) ? (int) $pts[$tipo] : 0;
+    }
+
     public static function register(){
-        // PARTES: obtener registro por clase/semana
         register_rest_route('liga-creus/v1', '/partes', [
             'methods'  => 'GET',
-            'callback' => [__CLASS__, 'get'],
+            'callback' => [__CLASS__, 'list'],
             'permission_callback' => ['LC_Auth', 'only_allowed'],
             'args' => [
                 'clase' => ['required'=>true, 'type'=>'string'],
@@ -16,101 +37,137 @@ class LC_REST_Partes {
             ],
         ]);
 
-        // PARTES: crear/actualizar registro por clase/semana
         register_rest_route('liga-creus/v1', '/partes', [
             'methods'  => 'POST',
-            'callback' => [__CLASS__, 'upsert'],
+            'callback' => [__CLASS__, 'create'],
             'permission_callback' => ['LC_Auth', 'only_allowed'],
             'args' => [
-                'clase'  => ['required'=>true, 'type'=>'string'],
-                'year'   => ['required'=>true, 'type'=>'integer'],
-                'week'   => ['required'=>true, 'type'=>'integer'],
-                'partes' => ['required'=>false, 'type'=>'integer'],
-                'notas'  => ['required'=>false, 'type'=>'string'],
+                'clase'     => ['required'=>true,  'type'=>'string'],
+                'year'      => ['required'=>true,  'type'=>'integer'],
+                'week'      => ['required'=>true,  'type'=>'integer'],
+                'alumno_id' => ['required'=>false, 'type'=>'integer', 'default'=>0],
+                'tipo'      => ['required'=>true,  'type'=>'string'],
+                'notas'     => ['required'=>false, 'type'=>'string'],
+            ],
+        ]);
+
+        register_rest_route('liga-creus/v1', '/partes', [
+            'methods'  => 'DELETE',
+            'callback' => [__CLASS__, 'delete'],
+            'permission_callback' => ['LC_Auth', 'only_allowed'],
+            'args' => [
+                'id' => ['required'=>true, 'type'=>'integer'],
             ],
         ]);
     }
 
     /**
-     * Obtiene datos de partes para una clase y semana específica
+     * Partes de una clase en una semana, con el nombre del alumno resuelto y el
+     * resumen de puntos, para que el formulario no tenga que recalcularlo.
      */
-    public static function get(\WP_REST_Request $req){
-        global $wpdb; $p = $wpdb->prefix;
+    public static function list(\WP_REST_Request $req){
+        global $wpdb;
         $clase = sanitize_text_field($req['clase']);
-        $year  = intval($req['year']);
-        $week  = intval($req['week']);
+        $year  = (int) $req['year'];
+        $week  = (int) $req['week'];
+        $t = self::tabla();
 
-        // Fila concreta
-        $row = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$p}lc_partes WHERE clase=%s AND iso_year=%d AND iso_week=%d",
-                $clase, $year, $week),
-            ARRAY_A
-        );
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, alumno_id, tipo, notas
+             FROM {$t}
+             WHERE clase=%s AND iso_year=%d AND iso_week=%d
+             ORDER BY id ASC",
+            $clase, $year, $week
+        ), ARRAY_A) ?: [];
 
-        // Último registro (para mostrar el acumulado si quieres)
-        $latest = $wpdb->get_row(
-            $wpdb->prepare("SELECT partes, iso_year, iso_week
-                            FROM {$p}lc_partes
-                            WHERE clase=%s
-                            ORDER BY iso_year DESC, iso_week DESC
-                            LIMIT 1", $clase)
-        );
-        $current = $latest ? intval($latest->partes) : 0;
+        $alumnos = LC_Alumnos::mapa();
+        $puntos = 0;
+        $resumen = array_fill_keys(self::TIPOS, 0);
 
-        // Semana anterior (por si quieres pre-rellenar)
-        $prev = $wpdb->get_row(
-            $wpdb->prepare("SELECT partes FROM {$p}lc_partes
-                            WHERE clase=%s AND (iso_year < %d OR (iso_year=%d AND iso_week < %d))
-                            ORDER BY iso_year DESC, iso_week DESC
-                            LIMIT 1", $clase, $year, $year, $week)
-        );
-        $prev_val = $prev ? intval($prev->partes) : 0;
+        foreach ($rows as &$r) {
+            $r['id'] = (int) $r['id'];
+            $r['alumno_id'] = (int) $r['alumno_id'];
+            // El alumno pudo borrarse después de registrar el parte: el parte se
+            // conserva y sigue puntuando para la clase, solo pierde el nombre.
+            if (!$r['alumno_id']) {
+                $r['alumno'] = 'Toda la clase';
+            } else {
+                $r['alumno'] = $alumnos[$r['alumno_id']]['nombre'] ?? 'Alumno eliminado';
+            }
+            $r['puntos'] = self::puntos_de($r['tipo']);
+            $puntos += $r['puntos'];
+            if (isset($resumen[$r['tipo']])) $resumen[$r['tipo']]++;
+        }
+        unset($r);
 
-        return ['ok'=>true, 'data'=>$row, 'current'=>$current, 'prev'=>$prev_val];
+        return ['ok'=>true, 'partes'=>$rows, 'resumen'=>$resumen, 'puntos'=>$puntos];
     }
 
-    /**
-     * Crea o actualiza datos de partes
-     */
-    public static function upsert(\WP_REST_Request $req){
-        global $wpdb; $p = $wpdb->prefix;
-        $clase  = sanitize_text_field($req['clase']);
-        $year   = intval($req['year']);
-        $week   = intval($req['week']);
-        $partes = intval($req->get_param('partes'));
-        $notas  = sanitize_textarea_field($req->get_param('notas'));
+    public static function create(\WP_REST_Request $req){
+        global $wpdb;
+        $clase     = sanitize_text_field($req->get_param('clase'));
+        $year      = (int) $req->get_param('year');
+        $week      = (int) $req->get_param('week');
+        $alumno_id = (int) $req->get_param('alumno_id');
+        $tipo      = sanitize_text_field($req->get_param('tipo'));
+        $notas     = sanitize_textarea_field($req->get_param('notas'));
 
-        $data = [
-            'clase'     => $clase,
-            'iso_year'  => $year,
-            'iso_week'  => $week,
-            'partes'    => $partes,
-            'notas'     => $notas,
-            'created_by'=> LC_Helpers::get_current_user_email(),
-        ];
-        $formats = ['%s','%d','%d','%d','%s','%s'];
+        if (!in_array($tipo, self::TIPOS, true)) {
+            return new \WP_REST_Response(['ok'=>false,'error'=>'Tipo de parte no válido'], 400);
+        }
 
-        $exists = $wpdb->get_var(
-            $wpdb->prepare("SELECT id FROM {$p}lc_partes WHERE clase=%s AND iso_year=%d AND iso_week=%d LIMIT 1",
-                $clase, $year, $week)
-        );
+        if ($alumno_id) {
+            $alumno = LC_Alumnos::get($alumno_id);
+            if (!$alumno) {
+                return new \WP_REST_Response(['ok'=>false,'error'=>'El alumno no existe'], 400);
+            }
+            // La clase del parte se toma del alumno, no del formulario: así sus
+            // puntos no pueden acabar contando para una clase que no es la suya.
+            $clase = $alumno['clase'];
+        } elseif (!in_array($clase, LC_Competiciones::get_clases(), true)) {
+            // Parte a toda la clase (alumno_id = 0): la clase sale del formulario.
+            return new \WP_REST_Response(['ok'=>false,'error'=>'Clase no válida'], 400);
+        }
 
-        $ok = $exists
-            ? $wpdb->update("{$p}lc_partes", $data, ['id'=>$exists], $formats, ['%d'])
-            : $wpdb->insert("{$p}lc_partes", $data, $formats);
+        $ok = $wpdb->insert(self::tabla(), [
+            'alumno_id'  => $alumno_id,
+            'clase'      => $clase,
+            'iso_year'   => $year,
+            'iso_week'   => $week,
+            'tipo'       => $tipo,
+            'notas'      => $notas,
+            'created_by' => LC_Helpers::get_current_user_email(),
+        ], ['%d','%s','%d','%d','%s','%s','%s']);
 
-        if ($ok === false){
-            error_log('LC partes_upsert error: '.$wpdb->last_error);
+        if ($ok === false) {
+            error_log('LC partes create error: ' . $wpdb->last_error);
             return new \WP_REST_Response(['ok'=>false,'error'=>'DB'], 500);
         }
 
-        // Devuelve la fila guardada para refrescar UI
-        $row = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$p}lc_partes WHERE clase=%s AND iso_year=%d AND iso_week=%d",
-                $clase, $year, $week),
-            ARRAY_A
-        );
+        return self::responder_lista($clase, $year, $week);
+    }
 
-        return ['ok'=>true, 'data'=>$row];
+    public static function delete(\WP_REST_Request $req){
+        global $wpdb;
+        $id = (int) $req->get_param('id');
+        $t = self::tabla();
+
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT clase, iso_year, iso_week FROM {$t} WHERE id=%d", $id
+        ), ARRAY_A);
+        if (!$row) {
+            return new \WP_REST_Response(['ok'=>false,'error'=>'Parte no encontrado'], 404);
+        }
+
+        $wpdb->delete($t, ['id' => $id], ['%d']);
+        return self::responder_lista($row['clase'], (int)$row['iso_year'], (int)$row['iso_week']);
+    }
+
+    private static function responder_lista($clase, $year, $week){
+        $r = new \WP_REST_Request('GET', '/liga-creus/v1/partes');
+        $r->set_param('clase', $clase);
+        $r->set_param('year', $year);
+        $r->set_param('week', $week);
+        return self::list($r);
     }
 }

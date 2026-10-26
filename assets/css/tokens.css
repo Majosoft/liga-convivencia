@@ -1,0 +1,503 @@
+/* ==========================================================================
+   Liga Convivencia — Design tokens & componentes base compartidos
+   Usado por: app.css (panel de profesorado) y clasificacion.css (página pública).
+   No contiene layout específico de ninguna vista, solo piezas reutilizables.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  /* Tipografía */
+  --lc-font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --lc-font-display: 'Baloo 2', var(--lc-font-ui);
+
+  /* Marca */
+  --lc-color-primary: #4F46E5;
+  --lc-color-primary-hover: #4338CA;
+  --lc-color-primary-light: #EEF2FF;
+  --lc-color-on-primary: #FFFFFF;
+
+  /* Estado semántico (mismos colores que los gomets del Semáforo, reutilizados en toda la app) */
+  --lc-color-success: #059669;
+  --lc-color-success-light: #ECFDF5;
+  --lc-color-success-border: #A7F3D0;
+
+  --lc-color-warning: #D97706;
+  --lc-color-warning-light: #FFFBEB;
+  --lc-color-warning-border: #FED7AA;
+
+  --lc-color-danger: #DC2626;
+  --lc-color-danger-light: #FEF2F2;
+  --lc-color-danger-border: #FECACA;
+
+  /* Neutros */
+  --lc-color-neutral-50:  #F8FAFC;
+  --lc-color-neutral-100: #F1F5F9;
+  --lc-color-neutral-200: #E2E8F0;
+  --lc-color-neutral-300: #CBD5E1;
+  --lc-color-neutral-400: #94A3B8;
+  --lc-color-neutral-500: #64748B;
+  --lc-color-neutral-600: #475569;
+  --lc-color-neutral-700: #334155;
+  --lc-color-neutral-800: #1E293B;
+  --lc-color-neutral-900: #0F172A;
+  --lc-color-surface: #FFFFFF;
+
+  /* Escalas */
+  --lc-space-1: 4px;
+  --lc-space-2: 8px;
+  --lc-space-3: 12px;
+  --lc-space-4: 16px;
+  --lc-space-5: 24px;
+  --lc-space-6: 32px;
+
+  --lc-radius-sm: 8px;
+  --lc-radius-md: 12px;
+  --lc-radius-lg: 16px;
+
+  --lc-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+  --lc-shadow-md: 0 10px 24px rgba(15, 23, 42, .08);
+
+  --lc-touch-target: 44px;
+}
+
+/* Nota: se descarta deliberadamente el soporte automático de prefers-color-scheme:dark.
+   Insertado dentro de temas de WordPress con sus propios estilos de texto/fondo,
+   invertir solo nuestras variables produce combinaciones rotas (fondo oscuro con texto
+   heredado del tema, que no se invierte). Un único tema claro, bien probado, es más fiable. */
+
+/* ===== Reset base ===== */
+*{ box-sizing: border-box; }
+
+body{
+  font-family: var(--lc-font-ui);
+  background: var(--lc-color-neutral-50);
+  color: var(--lc-color-neutral-900);
+  margin: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,h2,h3,h4,.lc-title{
+  font-family: var(--lc-font-display);
+  font-weight: 700;
+  margin: 0 0 var(--lc-space-3);
+  color: var(--lc-color-neutral-900);
+}
+
+.lc-meta{
+  font-size: 12px;
+  color: var(--lc-color-neutral-500);
+  margin-top: var(--lc-space-2);
+}
+
+a{ color: var(--lc-color-primary); }
+
+/* ===== Layout utilitario ===== */
+.lc-container{
+  max-width: var(--lc-container-max, 640px);
+  margin: 0 auto;
+  padding: var(--lc-space-5) var(--lc-space-4);
+}
+
+.lc-toolbar{
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lc-space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lc-card{
+  background: var(--lc-color-surface);
+  color: var(--lc-color-neutral-900);
+  border: 1px solid var(--lc-color-neutral-200);
+  border-radius: var(--lc-radius-lg);
+  box-shadow: var(--lc-shadow-md);
+  padding: var(--lc-space-5);
+}
+
+/* ===== Botones ===== */
+.lc-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lc-space-2);
+  min-height: var(--lc-touch-target);
+  padding: 10px var(--lc-space-4);
+  border: 0;
+  border-radius: var(--lc-radius-sm);
+  font-family: var(--lc-font-ui);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
+}
+
+.lc-btn-primary{
+  background: var(--lc-color-primary);
+  color: var(--lc-color-on-primary);
+}
+.lc-btn-primary:hover{ background: var(--lc-color-primary-hover); }
+
+.lc-btn-secondary{
+  background: transparent;
+  border: 1px solid var(--lc-color-neutral-300);
+  color: var(--lc-color-neutral-800);
+}
+.lc-btn-secondary:hover{ background: var(--lc-color-neutral-100); }
+
+.lc-btn-danger{
+  background: var(--lc-color-danger);
+  color: #fff;
+}
+.lc-btn-danger:hover{ background: #B91C1C; }
+
+.lc-btn-icon{
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border-radius: var(--lc-radius-sm);
+}
+
+.lc-btn-block{ width: 100%; }
+
+.lc-btn[disabled],
+.lc-btn.is-loading{
+  opacity: .6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.lc-spinner{
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  display: inline-block;
+  animation: lc-spin .7s linear infinite;
+}
+.lc-btn-secondary .lc-spinner{ border-color: var(--lc-color-neutral-300); border-top-color: var(--lc-color-neutral-700); }
+
+@keyframes lc-spin{ to{ transform: rotate(360deg); } }
+
+/* ===== Campos de formulario ===== */
+.lc-field{
+  display: flex;
+  flex-direction: column;
+  gap: var(--lc-space-1);
+  margin: var(--lc-space-3) 0;
+}
+
+.lc-field-row{
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.lc-field label{
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lc-color-neutral-700);
+}
+
+.lc-field input,
+.lc-field select,
+.lc-field textarea{
+  min-height: var(--lc-touch-target);
+  padding: 10px 12px;
+  border: 1px solid var(--lc-color-neutral-300);
+  border-radius: var(--lc-radius-sm);
+  background: var(--lc-color-surface);
+  color: var(--lc-color-neutral-900);
+  font-family: var(--lc-font-ui);
+  font-size: 15px;
+}
+
+.lc-field input[type="number"]{
+  width: 90px;
+  text-align: center;
+}
+
+.lc-field input:focus-visible,
+.lc-field select:focus-visible,
+.lc-field textarea:focus-visible,
+.lc-btn:focus-visible{
+  outline: 2px solid var(--lc-color-primary);
+  outline-offset: 2px;
+  border-color: var(--lc-color-primary);
+}
+
+.lc-field.has-error input,
+.lc-field.has-error select,
+.lc-field.has-error textarea{
+  border-color: var(--lc-color-danger);
+}
+
+.lc-field-error{
+  font-size: 12px;
+  color: var(--lc-color-danger);
+}
+
+/* ===== Stepper (contador +/-, usado por gomets/partes/marcadores) ===== */
+.lc-stepper{
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--lc-color-neutral-300);
+  border-radius: var(--lc-radius-sm);
+  background: var(--lc-color-surface);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.lc-stepper-btn{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--lc-touch-target);
+  height: var(--lc-touch-target);
+  border: none;
+  background: var(--lc-color-neutral-50);
+  color: var(--lc-color-neutral-700);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color .15s ease;
+}
+.lc-stepper-btn:hover{ background: var(--lc-color-neutral-100); }
+.lc-stepper-btn:active{ background: var(--lc-color-neutral-200); }
+.lc-stepper-btn:focus-visible{ outline: 2px solid var(--lc-color-primary); outline-offset: -2px; }
+
+.lc-stepper input[type="number"]{
+  width: 52px;
+  min-height: var(--lc-touch-target);
+  border: none;
+  border-left: 1px solid var(--lc-color-neutral-200);
+  border-right: 1px solid var(--lc-color-neutral-200);
+  border-radius: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--lc-color-neutral-900);
+  background: transparent;
+  -moz-appearance: textfield;
+}
+.lc-stepper input[type="number"]::-webkit-inner-spin-button,
+.lc-stepper input[type="number"]::-webkit-outer-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
+.lc-stepper input:focus-visible{
+  outline: none;
+  background: var(--lc-color-primary-light);
+}
+
+/* ===== Matchup (selector "A vs B", usado por Deportes/Biblioteca) ===== */
+.lc-matchup{
+  display: flex;
+  align-items: center;
+  gap: var(--lc-space-2);
+}
+.lc-matchup select{ flex: 1 1 0; min-width: 0; }
+.lc-matchup-vs{
+  flex: 0 0 auto;
+  font-family: var(--lc-font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .03em;
+  color: var(--lc-color-neutral-500);
+  background: var(--lc-color-neutral-100);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+/* ===== Pestañas (compartidas entre el panel y la clasificación) ===== */
+.lc-tabs{
+  display: flex;
+  gap: var(--lc-space-1);
+  border-bottom: 2px solid var(--lc-color-neutral-200);
+  overflow-x: auto;
+}
+
+.lc-tab{
+  background: none;
+  border: none;
+  padding: 10px var(--lc-space-4);
+  min-height: var(--lc-touch-target);
+  font-family: var(--lc-font-ui);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--lc-color-neutral-500);
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lc-tab:hover{
+  color: var(--lc-color-primary);
+  background: var(--lc-color-neutral-50);
+}
+
+.lc-tab.active{
+  color: var(--lc-color-primary);
+  border-bottom-color: var(--lc-color-primary);
+}
+
+.lc-tab-panel[hidden]{ display: none; }
+
+/* ===== Badges / Alertas / Estado ===== */
+.lc-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.lc-badge-success{ background: var(--lc-color-success-light); color: var(--lc-color-success); }
+.lc-badge-warning{ background: var(--lc-color-warning-light); color: var(--lc-color-warning); }
+.lc-badge-danger{ background: var(--lc-color-danger-light); color: var(--lc-color-danger); }
+.lc-badge-neutral{ background: var(--lc-color-neutral-100); color: var(--lc-color-neutral-600); }
+
+.lc-alert{
+  padding: var(--lc-space-3) var(--lc-space-4);
+  border-radius: var(--lc-radius-sm);
+  border: 1px solid transparent;
+  font-size: 14px;
+}
+.lc-alert-success{ background: var(--lc-color-success-light); color: var(--lc-color-success); border-color: var(--lc-color-success-border); }
+.lc-alert-danger{ background: var(--lc-color-danger-light); color: var(--lc-color-danger); border-color: var(--lc-color-danger-border); }
+.lc-alert-info{ background: var(--lc-color-neutral-100); color: var(--lc-color-neutral-700); border-color: var(--lc-color-neutral-200); }
+
+.lc-status{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-top: var(--lc-space-2);
+}
+.lc-status.success{ color: var(--lc-color-success); }
+.lc-status.error{ color: var(--lc-color-danger); }
+.lc-status.info{ color: var(--lc-color-neutral-500); }
+
+/* ===== Tablas ===== */
+.lc-table-container{
+  overflow-x: auto;
+  border-radius: var(--lc-radius-md);
+  box-shadow: var(--lc-shadow-sm);
+}
+
+.lc-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--lc-font-ui);
+  font-size: 14px;
+  background: var(--lc-color-surface);
+  color: var(--lc-color-neutral-900);
+}
+
+.lc-table th{
+  background: var(--lc-color-primary);
+  color: #fff;
+  padding: 12px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.lc-table td{
+  padding: 14px 12px;
+  text-align: center;
+  color: var(--lc-color-neutral-900);
+  border-bottom: 1px solid var(--lc-color-neutral-200);
+}
+
+.lc-table tbody tr:hover{ background: var(--lc-color-neutral-50); }
+
+/* Nombre de la clase (con su escudo si lo tiene) dentro de la columna CLASE.
+   display:flex y no inline-flex: así ocupa todo el ancho de la celda y centra
+   el conjunto, en vez de quedar pegado al borde y desplazarse según el escudo
+   mida más o menos. Vale para la clasificación pública y para los
+   mini-rankings del panel, que comparten este componente. */
+.lc-clase-cell{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* Conmutador Clases / Alumnos sobre una tabla de clasificación. Control
+   segmentado: dos botones pegados donde solo uno está activo. */
+.lc-ranking-toggle{
+  display: inline-flex;
+  padding: 3px;
+  margin-bottom: var(--lc-space-3);
+  background: var(--lc-color-neutral-100);
+  border: 1px solid var(--lc-color-neutral-200);
+  border-radius: var(--lc-radius-sm);
+}
+
+.lc-toggle-btn{
+  border: 0;
+  background: transparent;
+  border-radius: calc(var(--lc-radius-sm) - 3px);
+  padding: 6px 14px;
+  font-family: var(--lc-font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lc-color-neutral-600);
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+.lc-toggle-btn:hover{ color: var(--lc-color-neutral-900); }
+.lc-toggle-btn.is-active{
+  background: var(--lc-color-surface);
+  color: var(--lc-color-primary);
+  box-shadow: var(--lc-shadow-sm);
+}
+.lc-toggle-btn:focus-visible{
+  outline: 2px solid var(--lc-color-primary);
+  outline-offset: 2px;
+}
+
+/* El panel oculto lo es por el atributo hidden; se declara explícitamente para
+   no depender solo de la hoja de estilos del navegador. */
+[data-vista-panel][hidden]{ display: none; }
+
+/* Escudo de la clase en las tablas de clasificación (página pública y
+   mini-rankings del panel). La URL se pide en tamaño "medium" (300px), así que
+   hay resolución de sobra para este tamaño. */
+.lc-escudo{
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: var(--lc-radius-sm);
+  flex-shrink: 0;
+}
+
+/* ===== Accesibilidad / preferencias ===== */
+@media (prefers-reduced-motion: reduce){
+  *{
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ===== Responsive base ===== */
+@media (max-width: 480px){
+  .lc-field input,
+  .lc-field select,
+  .lc-field textarea{ font-size: 16px; } /* evita zoom automático en iOS */
+
+  .lc-matchup{ flex-wrap: wrap; }
+  .lc-matchup select{ flex: 1 1 100%; }
+  .lc-matchup-vs{ margin: 0 auto; }
+}

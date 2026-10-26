@@ -1,88 +1,116 @@
 // UI Deportes
-const LC_EQUIPOS = ["1ºA","1ºB","2ºA","2ºB","3ºA","3ºB","4ºA","4ºB"];
-const LC_DEPORTES = [
-  {value:"futbol", label:"Fútbol"},
-  {value:"baloncesto", label:"Baloncesto"},
-  {value:"pinpon", label:"Pin Pon"},
-  {value:"matapollos", label:"Matapollos"},
-];
+// Mismo contrato que ui-semaforo.js. Este módulo no usa la "Clase" de la barra
+// de contexto (cada partido define sus propios equipos A/B), solo year/week.
+// La lista de deportes y su modo de puntuación (enfrentamiento/individual) vienen
+// de window.LC_SETTINGS.deportes, configurable desde Ajustes > Liga Convivencia.
+
+function lcDeportesList(){
+  return window.LC_SETTINGS?.deportes || [];
+}
+
+function lcDeporteConfig(value){
+  return lcDeportesList().find(d => d.value === value) || null;
+}
 
 function uiDeportes(){
+  const teamOptions = lcClases().map(c => `<option>${c}</option>`).join('');
+  const sportOptions = lcDeportesList().map(d => `<option value="${d.value}">${d.label}</option>`).join('');
   return `
-    <div style="margin-top:16px">
-      <h4 class="lc-title" style="font-size:18px">Deportes – registro de partidos</h4>
+    <div>
+      <h4 class="lc-module-title">Deportes – registro de partidos</h4>
+
+      <div class="lc-module-split">
+      <div class="lc-module-form">
 
       <div class="lc-field">
-        <label class="lc-meta" style="min-width:110px;font-family:'Enriqueta',serif;">Deporte</label>
-        <select id="dep-sport">
-          <option value="futbol">Fútbol</option>
-          <option value="baloncesto">Baloncesto</option>
-          <option value="pinpon">Pin Pon</option>
-          <option value="matapollos">Matapollos</option>
-        </select>
+        <label for="dep-sport">Deporte</label>
+        <select id="dep-sport">${sportOptions}</select>
       </div>
 
-      <div class="lc-field">
-        <label class="lc-meta" style="min-width:110px">Semana</label>
-        <select id="dep-week"></select>
-      </div>
-
-      <div class="lc-field">
-        <label class="lc-meta" style="min-width:110px">Partido</label>
-        <select id="dep-team-a">
-          <option>1ºA</option><option>1ºB</option><option>2ºA</option><option>2ºB</option>
-          <option>3ºA</option><option>3ºB</option><option>4ºA</option><option>4ºB</option>
-        </select>
-        <span class="lc-meta">vs</span>
-        <select id="dep-team-b">
-          <option>1ºA</option><option>1ºB</option><option>2ºA</option><option>2ºB</option>
-          <option>3ºA</option><option>3ºB</option><option>4ºA</option><option>4ºB</option>
-        </select>
-      </div>
-
-      <div class="lc-field">
-        <label class="lc-meta" style="min-width:110px">Marcador</label>
-        <input type="number" id="dep-score-a" value="0" min="0"/>
-        <span class="lc-meta">–</span>
-        <input type="number" id="dep-score-b" value="0" min="0"/>
-      </div>
-
-      <!-- Participantes para Pin Pon -->
-      <div id="dep-participantes-pinpon" style="display:none">
+      <div id="dep-enfrentamiento-fields" class="lc-form-grid">
         <div class="lc-field">
-          <label class="lc-meta" style="min-width:110px">Participantes</label>
-          <button type="button" id="dep-add-participante" class="lc-btn ghost" style="margin-left:8px">+ Añadir</button>
+          <label for="dep-team-a">Partido</label>
+          <div class="lc-matchup">
+            <select id="dep-team-a">${teamOptions}</select>
+            <span class="lc-matchup-vs">VS</span>
+            <select id="dep-team-b" aria-label="Equipo visitante">${teamOptions}</select>
+          </div>
         </div>
-        
-        <div id="dep-participantes-list" style="margin:8px 0">
-          <!-- Se llenará dinámicamente -->
+
+        <div class="lc-field">
+          <label>Marcador</label>
+          <div class="lc-scoreboard">
+            <div class="lc-stepper">
+              <button type="button" class="lc-stepper-btn" data-step="-1" aria-label="Restar gol equipo A">−</button>
+              <input type="number" id="dep-score-a" value="0" min="0" inputmode="numeric"/>
+              <button type="button" class="lc-stepper-btn" data-step="1" aria-label="Sumar gol equipo A">+</button>
+            </div>
+            <span class="lc-scoreboard-sep">–</span>
+            <div class="lc-stepper">
+              <button type="button" class="lc-stepper-btn" data-step="-1" aria-label="Restar gol equipo B">−</button>
+              <input type="number" id="dep-score-b" value="0" min="0" inputmode="numeric" aria-label="Marcador equipo visitante"/>
+              <button type="button" class="lc-stepper-btn" data-step="1" aria-label="Sumar gol equipo B">+</button>
+            </div>
+          </div>
         </div>
       </div>
 
+      <div id="dep-alumnos-fields" class="lc-form-grid" style="display:none">
+        <div class="lc-field">
+          <label for="dep-alumno-a">Alumno de <span id="dep-alumno-a-clase"></span></label>
+          ${alumnoPickerHtml('dep-alumno-a')}
+        </div>
+        <div class="lc-field">
+          <label for="dep-alumno-b">Alumno de <span id="dep-alumno-b-clase"></span></label>
+          ${alumnoPickerHtml('dep-alumno-b')}
+        </div>
+      </div>
+
+      <div class="lc-field" id="dep-participantes-block">
+        <label id="dep-participantes-label">Participantes</label>
+        <div id="dep-participantes-list"></div>
+        <button type="button" id="dep-add-participante" class="lc-btn lc-btn-secondary lc-btn-add">+ Añadir</button>
+      </div>
+
       <div class="lc-field">
-        <label class="lc-meta" style="min-width:110px">Notas</label>
+        <label for="dep-notas">Notas</label>
         <textarea id="dep-notas" placeholder="Observaciones"></textarea>
       </div>
 
-      <div style="margin-top:12px">
-        <h5 class="lc-title" style="font-size:16px;margin:0">Partidos guardados</h5>
-        <div id="dep-list" class="lc-meta">Sin partidos esta semana.</div>
+      <div id="dep-edit-banner" class="lc-edit-mode-bar" style="display:none">
+        <span>✏️ Editando este partido</span>
+        <button type="button" id="dep-cancel-edit" class="lc-btn lc-btn-secondary lc-btn-sm">Cancelar</button>
       </div>
 
-      <div style="display: flex; justify-content:center; margin:30px;" >
-        <div class="lc-field" style="justify-content:flex-start">
-          <button class="lc-btn primary" id="dep-add" type="button" style="background-color: green">Guardar partido</button>
-          <span id="dep-msg" class="lc-meta"></span>
-        </div>
+      <div class="lc-actions">
+        <button class="lc-btn lc-btn-primary" id="dep-add" type="button">Guardar</button>
+        <span id="dep-msg" class="lc-status" aria-live="polite"></span>
       </div>
 
+      </div>
+
+      <div class="lc-module-side">
+      <div class="lc-panel-section">
+        <h5 class="lc-section-title">Partidos/eventos guardados</h5>
+        <div id="dep-list" class="lc-meta">Sin datos esta semana.</div>
+      </div>
+
+      <div class="lc-panel-section">
+        <h5 class="lc-section-title">Clasificación – <span id="dep-ranking-label"></span></h5>
+        <div id="dep-ranking" class="lc-meta">Cargando…</div>
+      </div>
+      </div>
+
+      </div>
     </div>
   `;
 }
 
-function bindDeportes(container){
+function bindDeportes(container, ctx){
+  function markDirty(){ ctx.onDirtyChange?.(true); }
+
   const sport = container.querySelector('#dep-sport');
-  const week  = container.querySelector('#dep-week');
+  const enfrentamientoFields = container.querySelector('#dep-enfrentamiento-fields');
   const ta    = container.querySelector('#dep-team-a');
   const tb    = container.querySelector('#dep-team-b');
   const sa    = container.querySelector('#dep-score-a');
@@ -91,215 +119,320 @@ function bindDeportes(container){
   const add   = container.querySelector('#dep-add');
   const msg   = container.querySelector('#dep-msg');
   const list  = container.querySelector('#dep-list');
-  const participantesDiv = container.querySelector('#dep-participantes-pinpon');
-  const addParticipante = container.querySelector('#dep-add-participante');
-  const participantesList = container.querySelector('#dep-participantes-list');
+  const participantesLabel = container.querySelector('#dep-participantes-label');
+  const addParticipanteBtn = container.querySelector('#dep-add-participante');
+  const participantesListEl = container.querySelector('#dep-participantes-list');
+  const rankingLabel = container.querySelector('#dep-ranking-label');
+  const rankingEl = container.querySelector('#dep-ranking');
+  const editBanner = container.querySelector('#dep-edit-banner');
+  const cancelEditBtn = container.querySelector('#dep-cancel-edit');
+  const alumnosFields = container.querySelector('#dep-alumnos-fields');
+  const participantesBlock = container.querySelector('#dep-participantes-block');
+  const claseALabel = container.querySelector('#dep-alumno-a-clase');
+  const claseBLabel = container.querySelector('#dep-alumno-b-clase');
+  const pickerA = bindAlumnoPicker(container.querySelector('#dep-alumno-a').closest('[data-alumno-picker]'), { onChange: markDirty });
+  const pickerB = bindAlumnoPicker(container.querySelector('#dep-alumno-b').closest('[data-alumno-picker]'), { onChange: markDirty });
 
-  let currentRows = []; // partidos de la semana/deporte actual
-  let participantes = []; // array de participantes {clase, nombre}
+  let currentRows = [];
+  let participantList = null;
+  let editingId = null;
 
-  const setMsg = (t, bad=false)=>{ msg.textContent = t||''; msg.style.color = bad ? '#b91c1c' : '#6b7280'; };
-
-  // Función para crear un input de participante
-  function createParticipanteInput(index, participante = {clase: '', nombre: ''}) {
-    return `
-      <div class="lc-field" style="margin:4px 0; padding:8px; border:1px solid #e5e7eb; border-radius:8px; background:#f9fafb">
-        <select class="dep-participante-clase" style="width:80px">
-          <option value="1ºA" ${participante.clase === '1ºA' ? 'selected' : ''}>1ºA</option>
-          <option value="1ºB" ${participante.clase === '1ºB' ? 'selected' : ''}>1ºB</option>
-          <option value="2ºA" ${participante.clase === '2ºA' ? 'selected' : ''}>2ºA</option>
-          <option value="2ºB" ${participante.clase === '2ºB' ? 'selected' : ''}>2ºB</option>
-          <option value="3ºA" ${participante.clase === '3ºA' ? 'selected' : ''}>3ºA</option>
-          <option value="3ºB" ${participante.clase === '3ºB' ? 'selected' : ''}>3ºB</option>
-          <option value="4ºA" ${participante.clase === '4ºA' ? 'selected' : ''}>4ºA</option>
-          <option value="4ºB" ${participante.clase === '4ºB' ? 'selected' : ''}>4ºB</option>
-        </select>
-        <input type="text" class="dep-participante-nombre" placeholder="Nombre del participante" 
-               value="${participante.nombre || ''}" style="flex:1; margin:0 8px"/>
-        <button type="button" class="dep-remove-participante lc-btn ghost" style="color:#b91c1c; padding:4px 8px">×</button>
-      </div>
-    `;
+  function modo(){
+    return lcDeporteConfig(sport.value)?.modo || 'enfrentamiento';
   }
 
-  // Función para renderizar la lista de participantes
-  function renderParticipantes() {
-    if (participantes.length === 0) {
-      participantesList.innerHTML = '<div class="lc-meta" style="text-align:center; padding:16px; color:#6b7280">No hay participantes añadidos</div>';
-      return;
+  function exitEditMode(){
+    editingId = null;
+    editBanner.style.display = 'none';
+  }
+
+  function enterEditMode(row){
+    editingId = parseInt(row.id, 10);
+    // Asignar .value programáticamente NO dispara el evento change en <select>/<input>
+    ta.value = row.equipo_a;
+    tb.value = row.equipo_b;
+    sa.value = row.marcador_a;
+    sb.value = row.marcador_b;
+    let parts = [];
+    try { parts = JSON.parse(row.participantes) || []; } catch(e) {}
+    if (Array.isArray(parts)) participantList.reset(parts.map(p => ({ clase: p.clase, nombre: p.nombre })));
+    if (modo() === 'alumnos') {
+      claseALabel.textContent = row.equipo_a;
+      claseBLabel.textContent = row.equipo_b;
+      pickerA.setClase(row.equipo_a, row.alumno_a);
+      pickerB.setClase(row.equipo_b, row.alumno_b);
     }
-    
-    participantesList.innerHTML = participantes.map((p, index) => createParticipanteInput(index, p)).join('');
-    
-    // Añadir event listeners a los nuevos elementos
-    participantesList.querySelectorAll('.dep-remove-participante').forEach((btn, index) => {
-      btn.addEventListener('click', () => {
-        participantes.splice(index, 1);
-        renderParticipantes();
-      });
+    notas.value = row.notas || '';
+    editBanner.style.display = 'flex';
+    // Scroll suave al formulario
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function buildParticipantList(){
+    const isIndividual = modo() === 'individual';
+    participantesLabel.textContent = isIndividual ? 'Participantes y marcas' : 'Participantes (opcional)';
+    participantList = createParticipantList({
+      container: participantesListEl,
+      classes: lcClases(),
+      onChange: markDirty,
+      extraField: isIndividual ? { name: 'marca', label: 'Marca' } : null,
     });
   }
 
-  // Función para añadir un participante
-  function addParticipanteHandler() {
-    participantes.push({clase: '1ºA', nombre: ''});
-    renderParticipantes();
+  [sa, sb].forEach(inp => inp.addEventListener('input', markDirty));
+  notas.addEventListener('input', markDirty);
+  addParticipanteBtn.addEventListener('click', () => participantList.add());
+  bindSteppers(container);
+
+  cancelEditBtn.addEventListener('click', () => {
+    exitEditMode();
+    sa.value = 0;
+    sb.value = 0;
+    participantList.reset([]);
+    notas.value = '';
+    setStatus(msg, '', 'info');
+  });
+
+  // Rellena los dos selectores con los alumnos de las clases elegidas.
+  async function syncAlumnos(){
+    claseALabel.textContent = ta.value || '';
+    claseBLabel.textContent = tb.value || '';
+    await pickerA.setClase(ta.value);
+    await pickerB.setClase(tb.value);
   }
 
-  // Función para mostrar/ocultar participantes según el deporte
-  function toggleParticipantes() {
-    const isPinpon = sport.value === 'pinpon';
-    participantesDiv.style.display = isPinpon ? 'block' : 'none';
+  function toggleFieldsByModo(){
+    const m = modo();
+    const isIndividual = m === 'individual';
+    const isAlumnos = m === 'alumnos';
+    enfrentamientoFields.style.display = isIndividual ? 'none' : '';
+    alumnosFields.style.display = isAlumnos ? '' : 'none';
+    // En modo por alumnos, la lista libre de participantes sobra: el alumno ya
+    // queda identificado por su ficha.
+    participantesBlock.style.display = isAlumnos ? 'none' : '';
+    buildParticipantList();
+    if (isAlumnos) syncAlumnos();
   }
-
-  // Rellenar semanas de la temporada (como en Semáforo)
-  (function initWeeks(){
-    const weeks = seasonWeeksFor(new Date());
-    week.innerHTML = weeks.map(w => `<option value="${w.value}">${w.label}</option>`).join('');
-    const {year, week:ww} = currentISOWeek();
-    const nowISO = `${year}-W${String(ww).padStart(2,'0')}`;
-    const opt = Array.from(week.options).find(o=>o.value===nowISO);
-    if(opt) week.value = nowISO;
-  })();
 
   function renderList(){
     if(!currentRows.length){
-      list.innerHTML = '<div class="lc-meta">Sin partidos esta semana.</div>';
+      list.innerHTML = '<div class="lc-meta">Sin datos esta semana.</div>';
       return;
     }
+    const isIndividual = modo() === 'individual';
+
+    if (isIndividual) {
+      const row = currentRows[0];
+      let participantes = [];
+      try { participantes = JSON.parse(row.participantes) || []; } catch(e) { participantes = []; }
+      participantes = participantes.slice().sort((x,y) => (y.puntos||0) - (x.puntos||0));
+      const rowsHtml = participantes.map(p => `
+        <tr>
+          <td>${p.clase}</td>
+          <td>${p.nombre}</td>
+          <td style="text-align:center">${p.marca}</td>
+          <td style="text-align:center">${p.puntos}</td>
+        </tr>`).join('');
+      list.innerHTML = `
+        <div class="lc-table-container">
+          <table class="lc-table">
+            <thead><tr><th>Clase</th><th>Nombre</th><th>Marca</th><th>Puntos</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+      return;
+    }
+
     const rowsHtml = currentRows.map(r => {
-      // Parsear participantes si vienen como JSON (solo para Pin Pon)
       let participantesText = '';
       if (r.participantes) {
         try {
           const parsed = JSON.parse(r.participantes);
-          if (Array.isArray(parsed)) {
-            participantesText = parsed.map(p => `${p.clase}: ${p.nombre}`).join(', ');
-          }
+          if (Array.isArray(parsed)) participantesText = parsed.map(p => `${p.clase}: ${p.nombre}`).join(', ');
         } catch (e) {
-          // Si no es JSON, usar como texto
           participantesText = r.participantes;
         }
       }
-      
+      const quien = modo() === 'alumnos'
+        ? `${r.alumno_a_nombre || '—'} vs ${r.alumno_b_nombre || '—'}`
+        : participantesText;
       return `
         <tr>
           <td>${r.equipo_a}</td>
           <td style="text-align:center">${r.marcador_a} – ${r.marcador_b}</td>
           <td>${r.equipo_b}</td>
           <td style="text-align:center">${r.pts_a} / ${r.pts_b}</td>
-          <td>${participantesText ? participantesText : ''}</td>
+          <td>${quien}</td>
           <td>${r.notas ? r.notas : ''}</td>
+          <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button></td>
         </tr>`;
     }).join('');
-    
+
     list.innerHTML = `
-      <div class="lc-field" style="margin:8px 0 0; display:block">
-        <table style="width:100%;border-collapse:collapse">
+      <div class="lc-table-container">
+        <table class="lc-table">
           <thead>
             <tr>
-              <th style="text-align:left">Equipo A</th>
-              <th style="text-align:center">Marcador</th>
-              <th style="text-align:left">Equipo B</th>
-              <th style="text-align:center">Puntos A/B</th>
-              <th style="text-align:left">Participantes</th>
-              <th style="text-align:left">Notas</th>
+              <th>Equipo A</th>
+              <th>Marcador</th>
+              <th>Equipo B</th>
+              <th>Puntos A/B</th>
+              <th>${modo() === 'alumnos' ? 'Alumnos' : 'Participantes'}</th>
+              <th>Notas</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>`;
+
+    list.querySelectorAll('.lc-edit-row-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rowId = parseInt(btn.dataset.rowId, 10);
+        const row = currentRows.find(r => parseInt(r.id, 10) === rowId);
+        if (row) enterEditMode(row);
+      });
+    });
   }
 
-  function prefillFromTeams(){
+  function prefillFromTeams(silent = false){
+    // Solo en enfrentamiento entre clases: en modo por alumnos cada partido es
+    // un registro propio y precargar "el partido de esas dos clases" no aplica.
+    if (modo() !== 'enfrentamiento') return;
     const A = ta.value, B = tb.value;
-    // busca A-B o B-A
     let row = currentRows.find(r => r.equipo_a===A && r.equipo_b===B);
     if(!row) row = currentRows.find(r => r.equipo_a===B && r.equipo_b===A);
     if(row){
       sa.value = row.equipo_a===A ? row.marcador_a : row.marcador_b;
       sb.value = row.equipo_a===A ? row.marcador_b : row.marcador_a;
       notas.value = row.notas || '';
-      setMsg('Partido existente cargado');
-    } else {
-      setMsg('');
+      if (!silent) setStatus(msg, 'Partido existente cargado', 'info');
+    } else if (!silent) {
+      setStatus(msg, '', 'info');
     }
+  }
+
+  function prefillIndividual(){
+    const row = currentRows[0];
+    if (!row) { participantList.reset([]); return; }
+    let participantes = [];
+    try { participantes = JSON.parse(row.participantes) || []; } catch(e) { participantes = []; }
+    participantList.reset(participantes.map(p => ({ clase: p.clase, nombre: p.nombre, marca: p.marca })));
+    notas.value = row.notas || '';
   }
 
   async function loadList(){
-    setMsg('');
-    const wk = parseWeekInput(week.value);
-    if(!wk){ setMsg('Semana inválida', true); return; }
+    setStatus(msg, '', 'info');
+    if(!ctx.year || !ctx.week){ return; }
     const dep = sport.value;
     try{
-      const q = new URLSearchParams({deporte: dep, year: wk.year, week: wk.week});
+      const q = new URLSearchParams({deporte: dep, year: ctx.year, week: ctx.week});
       const res = await window.LC_get(window.LC_EP + '/deportes?' + q.toString());
       currentRows = res?.partidos || [];
       renderList();
-      prefillFromTeams(); // intenta rellenar si ya hay equipos elegidos
+      if (modo() === 'individual') prefillIndividual();
+      else prefillFromTeams();
+      ctx.onDirtyChange?.(false);
     }catch(e){
       currentRows = [];
       renderList();
-      setMsg('Error al cargar partidos', true);
+      setStatus(msg, 'Error al cargar', 'error');
       console.error('GET /deportes', e);
+    }
+    loadRanking();
+  }
+
+  // Clasificación acumulada (toda la temporada) del deporte seleccionado.
+  async function loadRanking(){
+    const dep = sport.value;
+    rankingLabel.textContent = lcDeporteConfig(dep)?.label || dep;
+    rankingEl.innerHTML = 'Cargando…';
+    try{
+      const res = await window.LC_get(window.LC_EP + '/clasificacion');
+      const entry = res?.por_deporte?.find(d => d.value === dep);
+      rankingEl.innerHTML = renderRankingConToggle(entry?.ranking, entry?.ranking_alumnos);
+      bindRankingToggles(rankingEl);
+    }catch(e){
+      rankingEl.innerHTML = '<div class="lc-meta">Error al cargar la clasificación.</div>';
+      console.error('GET /clasificacion', e);
     }
   }
 
-  // Event listeners
-  addParticipante.addEventListener('click', addParticipanteHandler);
-  sport.addEventListener('change', ()=>{ toggleParticipantes(); loadList(); });
-  week.addEventListener('change', loadList);
-  ta.addEventListener('change', prefillFromTeams);
-  tb.addEventListener('change', prefillFromTeams);
+  // Al cambiar deporte o equipos, salir de modo edición
+  sport.addEventListener('change', ()=>{ exitEditMode(); toggleFieldsByModo(); loadList(); });
+  ta.addEventListener('change', ()=>{ exitEditMode(); prefillFromTeams(); if (modo() === 'alumnos') syncAlumnos(); });
+  tb.addEventListener('change', ()=>{ exitEditMode(); prefillFromTeams(); if (modo() === 'alumnos') syncAlumnos(); });
 
-  // Carga inicial
-  toggleParticipantes();
+  toggleFieldsByModo();
   loadList();
 
-  // Guardar partido
   add.addEventListener('click', async ()=>{
-    setMsg('');
-    const wk = parseWeekInput(week.value);
-    if(!wk) return setMsg('Semana inválida', true);
-    if(ta.value === tb.value) return setMsg('Los equipos deben ser distintos', true);
+    if(!ctx.year || !ctx.week) return setStatus(msg, 'Semana inválida', 'error');
+
+    const m = modo();
+    const isIndividual = m === 'individual';
+    const isAlumnos = m === 'alumnos';
+
+    if (!isIndividual && ta.value === tb.value) {
+      return setStatus(msg, 'Las clases deben ser distintas', 'error');
+    }
+    if (isAlumnos && (!pickerA.value() || !pickerB.value())) {
+      return setStatus(msg, 'Selecciona el alumno de cada clase', 'error');
+    }
 
     const payload = {
       deporte: sport.value,
-      year: wk.year,
-      week: wk.week,
-      equipo_a: ta.value,
-      equipo_b: tb.value,
-      marcador_a: parseInt(sa.value||0,10),
-      marcador_b: parseInt(sb.value||0,10),
-      notas: (notas.value||'')
+      year: ctx.year,
+      week: ctx.week,
+      notas: (notas.value||''),
     };
 
-    // Añadir participantes solo para Pin Pon
-    if (sport.value === 'pinpon') {
-      const participantesData = [];
-      participantesList.querySelectorAll('.lc-field').forEach(row => {
-        const clase = row.querySelector('.dep-participante-clase')?.value;
-        const nombre = row.querySelector('.dep-participante-nombre')?.value?.trim();
-        if (clase && nombre) {
-          participantesData.push({clase, nombre});
+    if (editingId) payload.id = editingId;
+
+    if (isIndividual) {
+      const valores = participantList.getValues();
+      if (!valores.length) return setStatus(msg, 'Añade al menos un participante con su marca', 'error');
+      for (const p of valores) {
+        if (p.marca === undefined || p.marca === '' || isNaN(parseFloat(p.marca))) {
+          return setStatus(msg, 'Todas las marcas deben ser números', 'error');
         }
-      });
-      payload.participantes = JSON.stringify(participantesData);
+      }
+      payload.participantes = JSON.stringify(valores.map(p => ({ clase: p.clase, nombre: p.nombre, marca: p.marca })));
+    } else {
+      payload.equipo_a = ta.value;
+      payload.equipo_b = tb.value;
+      payload.marcador_a = parseInt(sa.value||0,10);
+      payload.marcador_b = parseInt(sb.value||0,10);
+      if (isAlumnos) {
+        payload.alumno_a = pickerA.value();
+        payload.alumno_b = pickerB.value();
+        payload.participantes = '[]';
+      } else {
+        payload.participantes = JSON.stringify(participantList.getValues());
+      }
     }
 
+    setButtonLoading(add, true);
     try{
-      // el servidor devuelve la lista actualizada
       const res = await window.LC_post(window.LC_EP + '/deportes', payload);
+      setButtonLoading(add, false);
+      exitEditMode();
       currentRows = res?.partidos || [];
       renderList();
-      setMsg('Partido guardado ✅');
-      // Limpiar participantes
-      participantes = [];
-      renderParticipantes();
-      // NO reseteamos los inputs: prefilleamos el partido recién guardado
-      prefillFromTeams();
+      setStatus(msg, 'Guardado ✅', 'success');
+      ctx.onDirtyChange?.(false);
+      if (isIndividual) prefillIndividual();
+      else if (isAlumnos) { sa.value = 0; sb.value = 0; notas.value = ''; }
+      else { participantList.reset([]); prefillFromTeams(true); }
+      loadRanking();
     }catch(e){
-      setMsg('Error al guardar: ' + (e.message||''), true);
+      setButtonLoading(add, false);
+      setStatus(msg, 'Error al guardar: ' + (e.message||''), 'error');
       console.error('POST /deportes', payload, e);
     }
   });
+
+  return {
+    refresh(newCtx){ ctx = newCtx; exitEditMode(); loadList(); }
+  };
 }

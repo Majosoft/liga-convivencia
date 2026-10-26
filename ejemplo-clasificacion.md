@@ -1,10 +1,10 @@
-# 📊 Página de Clasificación - Liga Creus
+# 📊 Página de Clasificación - Liga Convivencia
 
 ## 🎯 Cómo Usar
 
 ### 1. Crear una Nueva Página
 1. Ve a **WordPress Admin > Páginas > Añadir Nueva**
-2. Título: "Clasificación Liga Creus"
+2. Título: "Clasificación Liga Convivencia"
 3. En el contenido, añade el shortcode:
 
 ```
@@ -17,45 +17,40 @@
 
 ### 3. Características de la Clasificación
 
-#### 🏆 **Vista General**
-- Tabla completa con todas las competiciones
-- Puntos por Semáforo, Deportes, Partes, Biblioteca
-- Total general de cada clase
-- Posiciones con medallas (🥇🥈🥉)
+#### 🏆 Vista General
+- Tabla con una fila por clase y una columna por competición: Semáforo, Deportes,
+  Partes, Extraordinarias, Biblioteca y Tiempo de Aprendizaje, más el total.
+- Las posiciones se numeran 1, 2, 3… y cada clase muestra su escudo si tiene uno
+  asignado en **Liga Convivencia → Clases**.
 
-#### 📊 **Vistas Individuales**
-- **Semáforo**: Clasificación solo por puntos de semáforo
-- **Deportes**: Clasificación solo por puntos de deportes  
-- **Partes**: Clasificación solo por puntos de partes
-- **Biblioteca**: Clasificación solo por puntos de biblioteca
+#### 📊 Pestañas individuales
+- **Semáforo**, **Partes**, **Extraordinarias** y **T. Aprendizaje**: ranking de
+  esa competición. La de Partes desglosa positivos, leves y graves.
+- **Deportes** y **Biblioteca**: una subpestaña por cada deporte o actividad
+  configurados, con su propio ranking.
 
-#### 🎨 **Diseño**
-- **Responsive**: Se adapta a móviles y tablets
-- **Colores**: Gradientes y colores distintivos
-- **Animaciones**: Transiciones suaves entre tabs
-- **Auto-refresh**: Se actualiza cada 5 minutos
+#### 🗓️ Filtro de periodo
+Encima de las pestañas, un selector permite ver la clasificación de:
+- **General**: la temporada en curso (o todo el histórico si no hay temporadas configuradas).
+- **Semanal** y **Mensual**: una semana o un mes concretos de la temporada.
+- **Trimestral**: los trimestres definidos en **Liga Convivencia → Calendario**.
+- **Temporada anterior**: el total de un curso ya cerrado.
 
-### 4. Estructura de Datos
+#### 🎨 Diseño
+- **Responsive**: se adapta a móviles y tablets.
+- **Auto-refresh**: la tabla se recarga sola cada 5 minutos.
+- Estilos en `assets/css/clasificacion.css`, sobre los tokens de `assets/css/tokens.css`.
 
-La clasificación se calcula automáticamente:
+### 4. De dónde salen los datos
 
-```php
-// Semáforo: Total acumulado por clase
-SELECT clase, MAX(total) as total_semaforo
-FROM lc_semaforo GROUP BY clase
+La clasificación no se guarda: se calcula en cada petición en
+`includes/class/rest-clasificacion.php`, agregando las seis tablas del plugin y
+aplicando el filtro de periodo. Dos detalles que conviene conocer:
 
-// Deportes: Suma de puntos por clase
-SELECT equipo_a, SUM(pts_a + pts_b) as total_deportes
-FROM lc_deportes GROUP BY equipo_a
-
-// Partes: Suma de partes por clase
-SELECT clase, SUM(COUNT) as total_partes
-FROM lc_partes GROUP BY clase
-
-// Biblioteca: Puntos por clase (divididos entre participantes)
-SELECT clase, SUM(puntos) as total_biblioteca
-FROM lc_biblioteca GROUP BY clase
-```
+- **El Semáforo es acumulado.** Dentro de un periodo se calcula como
+  `total al final − total justo antes de empezar`, no sumando las filas.
+- **Los inactivos siguen contando.** Un deporte, actividad o clase desmarcado como
+  *Activo* desaparece del panel de registro, pero su histórico se sigue viendo aquí.
 
 ### 5. Personalización CSS
 
@@ -74,7 +69,7 @@ Puedes personalizar los estilos editando:
 
 ```html
 <!-- Título de la página -->
-<h1>🏆 Liga Creus - Clasificación</h1>
+<h1>🏆 Liga Convivencia - Clasificación</h1>
 
 <!-- Shortcode de clasificación -->
 [liga_creus_clasificacion]
