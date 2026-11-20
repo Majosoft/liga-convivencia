@@ -38,7 +38,10 @@ pública muestra en tiempo real qué clase va primera.
 
 Un WordPress completo que se ejecuta en el navegador, sin instalar nada. El
 [blueprint.json](blueprint.json) instala el plugin desde este repositorio y carga
-ocho semanas de datos ficticios ([demo/seed.php](demo/seed.php)). Tarda menos de un
+datos ficticios de dos cursos ([demo/seed.php](demo/seed.php)): el anterior, cerrado
+y con sus tres trimestres, y el actual hasta hoy. Así todos los filtros de la
+clasificación (general, semanal, mensual, trimestral y temporada) y todas las
+modalidades de cada competición tienen datos. Tarda menos de un
 minuto en arrancar, y cada visita empieza de cero.
 
 | Qué probar | Dónde | Acceso |
