@@ -62,8 +62,8 @@ class LC_REST_TiempoAprendizaje {
         $month  = (int)$req->get_param('month');
         $borrar = (bool)$req->get_param('borrar');
 
-        if (empty($clase)) {
-            return new \WP_REST_Response(['ok' => false, 'error' => 'Clase requerida'], 400);
+        if (!in_array($clase, LC_Competiciones::get_clases(), true)) {
+            return new \WP_REST_Response(['ok' => false, 'error' => 'Clase no válida'], 400);
         }
         if ($month < 1 || $month > 12) {
             return new \WP_REST_Response(['ok' => false, 'error' => 'Mes inválido'], 400);

@@ -66,7 +66,7 @@ class LC_Alumnos {
         global $wpdb;
         $nombre = trim(sanitize_text_field($nombre));
         $clase  = sanitize_text_field($clase);
-        if ($nombre === '' || $clase === '') return 0;
+        if ($nombre === '' || !self::clase_valida($clase)) return 0;
 
         $t = self::tabla();
         $id = $wpdb->get_var($wpdb->prepare(
@@ -84,6 +84,11 @@ class LC_Alumnos {
         return (int) $wpdb->insert_id;
     }
 
+    /** Solo clases configuradas en Liga Convivencia > Clases. */
+    public static function clase_valida($clase) {
+        return $clase !== '' && in_array($clase, LC_Competiciones::get_clases(), true);
+    }
+
     /** Cambia nombre y/o clase. El histórico se mantiene porque va por id. */
     public static function update($id, $nombre, $clase, $activo) {
         global $wpdb;
@@ -91,7 +96,7 @@ class LC_Alumnos {
         if ($id <= 0) return false;
         $nombre = trim(sanitize_text_field($nombre));
         $clase  = sanitize_text_field($clase);
-        if ($nombre === '' || $clase === '') return false;
+        if ($nombre === '' || !self::clase_valida($clase)) return false;
 
         return $wpdb->update(self::tabla(), [
             'nombre' => $nombre,
@@ -101,14 +106,47 @@ class LC_Alumnos {
     }
 
     /**
-     * Borra un alumno. Sus registros no se tocan: quedan apuntando a un id que ya
-     * no existe y pasan a contar como "sin alumno", igual que si nunca se hubiera
-     * indicado. Los puntos de la clase no cambian.
+     * Borra un alumno y sus datos personales (derecho de supresión, RGPD):
+     * - Sus partes se conservan, porque los puntos son de la clase, pero
+     *   pierden las notas (texto libre que puede hablar del alumno) y pasan a
+     *   mostrarse como "Alumno eliminado".
+     * - Donde su nombre aparece escrito (participantes de Biblioteca y de las
+     *   pruebas por marca de Deportes) se sustituye por "Alumno eliminado".
+     * Los puntos de la clase no cambian.
      */
     public static function delete($id) {
-        global $wpdb;
+        global $wpdb; $p = $wpdb->prefix;
         $id = (int) $id;
         if ($id <= 0) return false;
+        $alumno = self::get($id);
+        if (!$alumno) return false;
+
+        $wpdb->update("{$p}lc_partes_alumnos", ['notas' => null], ['alumno_id' => $id], ['%s'], ['%d']);
+
+        foreach (["{$p}lc_biblioteca", "{$p}lc_deportes"] as $tabla) {
+            // El nombre puede estar guardado tal cual o con los acentos escapados
+            // en el JSON ("Luc\u00eda"): se buscan las dos formas.
+            $escapado = trim(wp_json_encode($alumno['nombre']), '"');
+            $filas = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, participantes FROM {$tabla} WHERE participantes LIKE %s OR participantes LIKE %s",
+                '%' . $wpdb->esc_like($alumno['nombre']) . '%', '%' . $wpdb->esc_like($escapado) . '%'), ARRAY_A);
+            foreach ((array) $filas as $f) {
+                $lista = json_decode((string) $f['participantes'], true);
+                if (!is_array($lista)) continue;
+                $cambia = false;
+                foreach ($lista as &$part) {
+                    if (is_array($part) && ($part['nombre'] ?? '') === $alumno['nombre'] && ($part['clase'] ?? '') === $alumno['clase']) {
+                        $part['nombre'] = 'Alumno eliminado';
+                        $cambia = true;
+                    }
+                }
+                unset($part);
+                if ($cambia) {
+                    $wpdb->update($tabla, ['participantes' => wp_json_encode($lista, JSON_UNESCAPED_UNICODE)], ['id' => (int) $f['id']], ['%s'], ['%d']);
+                }
+            }
+        }
+
         return $wpdb->delete(self::tabla(), ['id' => $id], ['%d']) !== false;
     }
 }

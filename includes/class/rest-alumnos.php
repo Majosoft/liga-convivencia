@@ -47,6 +47,9 @@ class LC_REST_Alumnos {
         if (trim($nombre) === '' || $clase === '') {
             return new \WP_REST_Response(['ok' => false, 'error' => 'Indica el nombre del alumno y su clase'], 400);
         }
+        if (!LC_Alumnos::clase_valida($clase)) {
+            return new \WP_REST_Response(['ok' => false, 'error' => 'Clase no válida'], 400);
+        }
 
         $id = LC_Alumnos::find_or_create($nombre, $clase);
         if (!$id) {

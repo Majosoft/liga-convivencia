@@ -162,7 +162,8 @@ function bindExtraordinarias(container, ctx){
           <td><strong>${lcEscapar(act.nombre)}</strong></td>
           <td>${clasesText}</td>
           <td>${lcEscapar(act.notas)}</td>
-          <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-nombre="${encodeURIComponent(act.nombre)}">Editar</button></td>
+          <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-nombre="${encodeURIComponent(act.nombre)}">Editar</button>
+              <button type="button" class="lc-btn lc-btn-secondary lc-borrar-row-btn lc-btn-xs" data-nombre="${encodeURIComponent(act.nombre)}">Borrar</button></td>
         </tr>`;
     }).join('');
 
@@ -186,6 +187,24 @@ function bindExtraordinarias(container, ctx){
         const nombre = decodeURIComponent(btn.dataset.nombre);
         const act = currentActividades.find(a => a.nombre === nombre);
         if (act) enterEditMode(act);
+      });
+    });
+
+    // Borrar la actividad entera (todas sus clases) de esta semana.
+    list.querySelectorAll('.lc-borrar-row-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const nombre = decodeURIComponent(btn.dataset.nombre);
+        if (!window.confirm(`¿Borrar la actividad "${nombre}" de esta semana? Sus puntos dejarán de contar y no se puede deshacer.`)) return;
+        try {
+          const res = await window.LC_delete(window.LC_EP + '/extraordinarias', { nombre, year: ctx.year, week: ctx.week });
+          if (editingNombre === nombre) exitEditMode();
+          currentActividades = res?.actividades || [];
+          renderList();
+          setStatus(msg, 'Actividad borrada', 'info');
+          loadRanking();
+        } catch (e) {
+          setStatus(msg, e.message || 'No se pudo borrar', 'error');
+        }
       });
     });
   }

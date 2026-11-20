@@ -36,6 +36,14 @@ class LC_REST_Deportes {
                 'id'        => ['required'=>false, 'type'=>'integer'],
             ],
         ]);
+
+        // Borrar un partido o evento registrado por error.
+        register_rest_route('liga-creus/v1', '/deportes', [
+            'methods'  => 'DELETE',
+            'callback' => [__CLASS__, 'borrar'],
+            'permission_callback' => ['LC_Auth', 'only_allowed'],
+            'args' => ['id' => ['required' => true, 'type' => 'integer']],
+        ]);
     }
 
     /**
@@ -287,6 +295,21 @@ class LC_REST_Deportes {
         $r->set_param('deporte', $dep);
         $r->set_param('year', $year);
         $r->set_param('week', $week);
+        return self::list($r);
+    }
+
+    /** Borra un partido o evento y devuelve la lista actualizada de esa semana. */
+    public static function borrar(\WP_REST_Request $req){
+        global $wpdb; $p = $wpdb->prefix;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT deporte, iso_year, iso_week FROM {$p}lc_deportes WHERE id=%d", (int) $req->get_param('id')), ARRAY_A);
+        if (!$row) return new \WP_REST_Response(['ok'=>false,'error'=>'Registro no encontrado'], 404);
+        $wpdb->delete("{$p}lc_deportes", ['id' => (int) $req->get_param('id')], ['%d']);
+
+        $r = new \WP_REST_Request('GET', '/liga-creus/v1/deportes');
+        $r->set_param('deporte', $row['deporte']);
+        $r->set_param('year', (int) $row['iso_year']);
+        $r->set_param('week', (int) $row['iso_week']);
         return self::list($r);
     }
 }

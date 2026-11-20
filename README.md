@@ -8,7 +8,7 @@ pública muestra en tiempo real qué clase va primera.
 > **Trabajo Fin de Máster** del Máster de Programación con IA. Es un proyecto real:
 > se usa en un instituto durante el curso 2026-27.
 
-- **Versión**: 1.2.2
+- **Versión**: 1.3.0
 - **Requiere**: WordPress 5.8+, PHP 7.3+, HTTPS en producción
 - **Licencia del código**: propiedad del autor (Majosoft)
 
@@ -237,6 +237,8 @@ hizo una auditoría completa con ayuda de IA y se corrigió todo lo encontrado.
 
 **Privacidad (RGPD)**
 - *Minimización*: del alumnado solo se guarda el nombre de pila y la clase.
+- *Supresión*: al borrar un alumno se eliminan también sus datos personales (su nombre
+  en las listas de participantes y las notas de sus partes); los puntos de su clase se conservan.
 - La clasificación pública muestra alumnos **solo por méritos** (deportes, biblioteca,
   extraordinarias) y solo si suman puntos. Los partes nunca aparecen asociados a un
   nombre en público; el ranking de partes por alumno solo llega al profesorado con
@@ -309,6 +311,7 @@ assets/
 tests/
   auth-test.php                   Pruebas de autenticación (PHP CLI)
   informes-ia-test.php            Pruebas de los informes de IA (PHP CLI)
+  alumnos-test.php                Pruebas del borrado de alumnos y supresión de datos
 ```
 
 Convenciones: clases PHP con prefijo `LC_`, CSS con `lc-`, opciones con `lc_`. Cada
@@ -328,11 +331,11 @@ módulo del panel expone `uiX()` (marcado) y `bindX(container, ctx)` (comportami
 | POST | `/gomets` | profesor | `sesion_id`, `fecha`, `color` |
 | GET | `/gomets/horario` | profesor | — |
 | GET·POST | `/semaforo` | completo | `clase`, `year`, `week` |
-| GET·POST | `/deportes` | completo | `deporte`, `year`, `week` |
+| GET·POST·DELETE | `/deportes` | completo | `deporte`, `year`, `week`; DELETE borra por `id` |
 | GET·POST·DELETE | `/partes` | completo | `clase`, `year`, `week`; POST `alumno_id`, `tipo`; DELETE `id` |
 | GET·POST | `/alumnos` | completo | `clase`; alta con `nombre` + `clase` |
-| GET·POST | `/biblioteca` | completo | `actividad`, `year`, `week` |
-| GET·POST | `/extraordinarias` | completo | `year`, `week` |
+| GET·POST·DELETE | `/biblioteca` | completo | `actividad`, `year`, `week`; DELETE borra por `id` |
+| GET·POST·DELETE | `/extraordinarias` | completo | `year`, `week`; DELETE borra una actividad por `nombre` |
 | GET·POST | `/tiempo-aprendizaje` | completo | `clase`, `year`, `month` |
 | GET | `/clasificacion` | público | `periodo`, `year`, `week`, `month`, `trimestre`, `temporada` |
 | GET | `/widget` | público | — (HTML ya renderizado para el widget del tema) |
@@ -382,6 +385,7 @@ activador migra los esquemas de versiones anteriores y es idempotente.
 ```bash
 php tests/auth-test.php
 php tests/informes-ia-test.php
+php tests/alumnos-test.php
 ```
 
 - **Autenticación** (20 casos): código de un solo uso, bloqueo tras 5 fallos, límites por email y
@@ -390,6 +394,10 @@ php tests/informes-ia-test.php
 - **Informes de IA** (25 casos): periodos con cambio de año ISO, lista blanca de
   campos enviados, escapado del Markdown del modelo, y la petición a la API
   (cabeceras, modelo, respaldo, rechazos y errores) con respuestas simuladas.
+
+- **Alumnado** (11 casos): validación de clase y borrado con supresión de datos
+  personales (notas de partes y nombres en participantes, también con acentos escapados)
+  sin perder los puntos de la clase.
 
 Se ejecutan sin WordPress ni red gracias a una simulación mínima de sus funciones.
 

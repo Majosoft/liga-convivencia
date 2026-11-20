@@ -238,7 +238,8 @@ function bindBiblioteca(container, ctx){
           <td>${quien(r, 'b')}</td>
           <td>${lcEscapar(ganadorLabel[r.ganador] || r.ganador)}</td>
           <td>${lcEscapar(r.notas)}</td>
-          <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button></td>
+          <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button>
+              <button type="button" class="lc-btn lc-btn-secondary lc-borrar-row-btn lc-btn-xs" data-row-id="${r.id}">Borrar</button></td>
         </tr>`).join('');
       list.innerHTML = `
         <div class="lc-table-container">
@@ -261,7 +262,8 @@ function bindBiblioteca(container, ctx){
             <td>${lcEscapar(participantesText)}</td>
             <td style="text-align:center">${r.puntos}</td>
             <td>${lcEscapar(r.notas)}</td>
-            <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button></td>
+            <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button>
+              <button type="button" class="lc-btn lc-btn-secondary lc-borrar-row-btn lc-btn-xs" data-row-id="${r.id}">Borrar</button></td>
           </tr>`;
       }).join('');
 
@@ -287,6 +289,24 @@ function bindBiblioteca(container, ctx){
         const rowId = parseInt(btn.dataset.rowId, 10);
         const row = currentRows.find(r => parseInt(r.id, 10) === rowId);
         if (row) enterEditMode(row);
+      });
+    });
+
+    // Botones "Borrar": piden confirmación y recargan la semana.
+    list.querySelectorAll('.lc-borrar-row-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!window.confirm('¿Borrar este registro? Sus puntos dejarán de contar y no se puede deshacer.')) return;
+        const id = parseInt(btn.dataset.rowId, 10);
+        try {
+          const res = await window.LC_delete(window.LC_EP + '/biblioteca', { id });
+          if (editingId === id) exitEditMode();
+          currentRows = res?.actividades || [];
+          renderList();
+          setStatus(msg, 'Registro borrado', 'info');
+          loadRanking();
+        } catch (e) {
+          setStatus(msg, e.message || 'No se pudo borrar', 'error');
+        }
       });
     });
   }

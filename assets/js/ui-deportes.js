@@ -239,7 +239,9 @@ function bindDeportes(container, ctx){
             <thead><tr><th>Clase</th><th>Nombre</th><th>Marca</th><th>Puntos</th></tr></thead>
             <tbody>${rowsHtml}</tbody>
           </table>
-        </div>`;
+        </div>
+        <p><button type="button" class="lc-btn lc-btn-secondary lc-borrar-row-btn lc-btn-xs" data-row-id="${row.id}">Borrar esta prueba</button></p>`;
+      bindBorrar();
       return;
     }
 
@@ -264,7 +266,8 @@ function bindDeportes(container, ctx){
           <td style="text-align:center">${r.pts_a} / ${r.pts_b}</td>
           <td>${lcEscapar(quien)}</td>
           <td>${lcEscapar(r.notas)}</td>
-          <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button></td>
+          <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button>
+              <button type="button" class="lc-btn lc-btn-secondary lc-borrar-row-btn lc-btn-xs" data-row-id="${r.id}">Borrar</button></td>
         </tr>`;
     }).join('');
 
@@ -291,6 +294,28 @@ function bindDeportes(container, ctx){
         const rowId = parseInt(btn.dataset.rowId, 10);
         const row = currentRows.find(r => parseInt(r.id, 10) === rowId);
         if (row) enterEditMode(row);
+      });
+    });
+    bindBorrar();
+  }
+
+  // Botones "Borrar" de la lista: piden confirmación y recargan la semana.
+  function bindBorrar(){
+    list.querySelectorAll('.lc-borrar-row-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!window.confirm('¿Borrar este registro? Sus puntos dejarán de contar y no se puede deshacer.')) return;
+        const id = parseInt(btn.dataset.rowId, 10);
+        try {
+          const res = await window.LC_delete(window.LC_EP + '/deportes', { id });
+          if (editingId === id) exitEditMode();
+          currentRows = res?.partidos || [];
+          renderList();
+          if (modo() === 'individual') prefillIndividual();
+          setStatus(msg, 'Registro borrado', 'info');
+          loadRanking();
+        } catch (e) {
+          setStatus(msg, e.message || 'No se pudo borrar', 'error');
+        }
       });
     });
   }

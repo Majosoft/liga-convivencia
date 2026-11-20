@@ -523,7 +523,7 @@ class LC_Admin {
         echo '<button type="submit" class="button">Guardar</button>';
         echo '</form>';
 
-        echo '<form method="post" action="' . esc_url(admin_url('admin.php')) . '" class="lc-usuario-delete-form" onsubmit="return confirm(\'¿Eliminar a ' . esc_js($a['nombre']) . '? Sus registros se conservan, pero dejarán de mostrar su nombre.\');">';
+        echo '<form method="post" action="' . esc_url(admin_url('admin.php')) . '" class="lc-usuario-delete-form" onsubmit="return confirm(\'¿Eliminar a ' . esc_js($a['nombre']) . '? Se borran también sus datos personales (su nombre en los registros y las notas de sus partes). Los puntos de su clase se conservan.\');">';
         wp_nonce_field('lc_alumno_action');
         echo '<input type="hidden" name="lc_action" value="alumno_delete" />';
         echo '<input type="hidden" name="alumno_id" value="' . esc_attr($id) . '" />';

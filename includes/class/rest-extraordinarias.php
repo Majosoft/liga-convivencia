@@ -27,6 +27,18 @@ class LC_REST_Extraordinarias {
                 'original_nombre'  => ['required' => false, 'type' => 'string'],  // para renombrar
             ],
         ]);
+
+        // Borrar una actividad entera (todas sus clases) de una semana.
+        register_rest_route('liga-creus/v1', '/extraordinarias', [
+            'methods'  => 'DELETE',
+            'callback' => [__CLASS__, 'borrar'],
+            'permission_callback' => ['LC_Auth', 'only_allowed'],
+            'args' => [
+                'nombre' => ['required' => true, 'type' => 'string'],
+                'year'   => ['required' => true, 'type' => 'integer'],
+                'week'   => ['required' => true, 'type' => 'integer'],
+            ],
+        ]);
     }
 
     /**
@@ -76,6 +88,9 @@ class LC_REST_Extraordinarias {
             $clase  = sanitize_text_field($c['clase'] ?? '');
             $puntos = (int)($c['puntos'] ?? 0);
             if (empty($clase)) continue;
+            if (!in_array($clase, LC_Competiciones::get_clases(), true)) {
+                return new \WP_REST_Response(['ok' => false, 'error' => "La clase {$clase} no existe"], 400);
+            }
             if (!in_array($puntos, $puntos_validos, true)) {
                 return new \WP_REST_Response(['ok' => false, 'error' => "Puntuación no válida para la clase {$clase}"], 400);
             }
@@ -160,5 +175,17 @@ class LC_REST_Extraordinarias {
         $r->set_param('year', $year);
         $r->set_param('week', $week);
         return self::list($r);
+    }
+
+    /** Borra una actividad extraordinaria de una semana y devuelve la lista actualizada. */
+    public static function borrar(\WP_REST_Request $req){
+        global $wpdb; $p = $wpdb->prefix;
+        $year = (int) $req->get_param('year');
+        $week = (int) $req->get_param('week');
+        $n = $wpdb->delete("{$p}lc_extraordinarias", [
+            'nombre' => sanitize_text_field($req->get_param('nombre')), 'iso_year' => $year, 'iso_week' => $week,
+        ], ['%s', '%d', '%d']);
+        if (!$n) return new \WP_REST_Response(['ok'=>false,'error'=>'Actividad no encontrada'], 404);
+        return self::respond_list($year, $week);
     }
 }

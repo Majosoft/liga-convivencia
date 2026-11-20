@@ -30,6 +30,20 @@ window.LC_post = async function(url, body){
   return data;
 };
 
+// Borrado: mismos criterios que LC_post (lanza con el mensaje del servidor).
+window.LC_delete = async function(url, body){
+  const r = await fetch(url, {
+    method:'DELETE',
+    headers:{'Content-Type':'application/json','X-WP-Nonce': window.LC_NONCE},
+    body: JSON.stringify(body||{})
+  });
+  let data = null;
+  try { data = await r.json(); } catch(_) { data = {}; }
+  lcSesionCaducada(url, r, data);
+  if (!r.ok) throw new Error(data?.message || data?.error || `${r.status} ${r.statusText}`);
+  return data;
+};
+
 window.LC_get = async function(url){
   const r = await fetch(url, { headers:{'X-WP-Nonce': window.LC_NONCE} });
   let data = {};

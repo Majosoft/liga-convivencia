@@ -36,6 +36,14 @@ class LC_REST_Biblioteca {
                 'id'           => ['required'=>false, 'type'=>'integer'],
             ],
         ]);
+
+        // Borrar una actividad o partida registrada por error.
+        register_rest_route('liga-creus/v1', '/biblioteca', [
+            'methods'  => 'DELETE',
+            'callback' => [__CLASS__, 'borrar'],
+            'permission_callback' => ['LC_Auth', 'only_allowed'],
+            'args' => ['id' => ['required' => true, 'type' => 'integer']],
+        ]);
     }
 
     /**
@@ -248,5 +256,15 @@ class LC_REST_Biblioteca {
         $r->set_param('year', $year);
         $r->set_param('week', $week);
         return self::list($r);
+    }
+
+    /** Borra un registro de Biblioteca y devuelve la lista actualizada de esa semana. */
+    public static function borrar(\WP_REST_Request $req){
+        global $wpdb; $p = $wpdb->prefix;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT actividad, iso_year, iso_week FROM {$p}lc_biblioteca WHERE id=%d", (int) $req->get_param('id')), ARRAY_A);
+        if (!$row) return new \WP_REST_Response(['ok'=>false,'error'=>'Registro no encontrado'], 404);
+        $wpdb->delete("{$p}lc_biblioteca", ['id' => (int) $req->get_param('id')], ['%d']);
+        return self::respond_list($row['actividad'], (int) $row['iso_year'], (int) $row['iso_week']);
     }
 }
