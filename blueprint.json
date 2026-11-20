@@ -1,0 +1,42 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "landingPage": "/clasificacion/",
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "latest"
+  },
+  "features": {
+    "networking": true
+  },
+  "steps": [
+    {
+      "step": "defineWpConfigConsts",
+      "consts": {
+        "LC_DEMO": true,
+        "WP_ENVIRONMENT_TYPE": "development"
+      }
+    },
+    {
+      "step": "login",
+      "username": "admin",
+      "password": "password"
+    },
+    {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "git:directory",
+        "url": "https://github.com/Majosoft/liga-convivencia",
+        "ref": "main",
+        "refType": "branch"
+      },
+      "options": {
+        "activate": true,
+        "targetFolderName": "liga-convivencia"
+      }
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php require_once '/wordpress/wp-load.php'; require_once WP_PLUGIN_DIR . '/liga-convivencia/demo/seed.php'; lc_demo_seed();"
+    }
+  ]
+}

@@ -157,7 +157,10 @@ window.LC_get = async function(url){
       try{
         const res = await window.LC_post(EP + '/auth/login', { email });
         setButtonLoading(btn, false);
-        root.querySelector('#lc-aviso').textContent = res.mensaje || 'Revisa tu correo.';
+        root.querySelector('#lc-aviso').textContent = res.codigo_demo
+          ? `Demo: tu código es ${res.codigo_demo}. En un centro real llegaría por email.`
+          : (res.mensaje || 'Revisa tu correo.');
+        if (res.codigo_demo) inpCod.value = res.codigo_demo;
         pasoEmail.style.display = 'none';
         pasoCodigo.style.display = '';
         inpCod.focus();

@@ -118,6 +118,9 @@ ok(LC_Auth::only_allowed(con_cookie($nuevo)), 'una sesión nueva sí vale');
 $GLOBALS['opciones']['lc_usuarios'] = [];
 ok(!LC_Auth::only_allowed(con_cookie($nuevo)), 'dar de baja al usuario corta su sesión al momento');
 
+fwrite(STDOUT, "Modo demo\n");
+ok(!LC_Auth::modo_demo(), 'sin la constante LC_DEMO el código nunca se muestra');
+
 fwrite(STDOUT, "HTTPS\n");
 $GLOBALS['ssl'] = false; $GLOBALS['entorno'] = 'production';
 ok(LC_Auth::https_requerido(), 'en producción sin HTTPS se bloquea el login');

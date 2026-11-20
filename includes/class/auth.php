@@ -128,15 +128,17 @@ class LC_Auth {
 
     /**
      * Si el email tiene acceso, genera un código y lo envía. No dice nada
-     * hacia fuera sobre si el email existe.
+     * hacia fuera sobre si el email existe. Devuelve el código generado (o
+     * null) solo para que el modo demo pueda enseñarlo; en producción ese
+     * valor no sale nunca del servidor (ver LC_REST_Auth::login()).
      */
     public static function solicitar_codigo($email) {
         $email = strtolower(sanitize_email($email));
-        if (!$email || !self::is_authorized($email)) return;
+        if (!$email || !self::is_authorized($email)) return null;
 
         $clave = self::clave_codigo($email);
         $previo = get_transient($clave);
-        if (is_array($previo) && ($previo['enviado'] ?? 0) > time() - MINUTE_IN_SECONDS) return;
+        if (is_array($previo) && ($previo['enviado'] ?? 0) > time() - MINUTE_IN_SECONDS) return null;
 
         $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         set_transient($clave, [
@@ -155,6 +157,16 @@ class LC_Auth {
             . "Caduca en 10 minutos. Si no lo has pedido tú, ignora este mensaje: nadie puede entrar sin él."
         );
         if (!$ok) error_log('[Liga Convivencia] No se pudo enviar el código de acceso (wp_mail falló).');
+        return $codigo;
+    }
+
+    /**
+     * Modo demostración (WordPress Playground, sin correo): el código se
+     * muestra en pantalla. Solo con la constante LC_DEMO, que define el
+     * blueprint de la demo; nunca está activa en una instalación real.
+     */
+    public static function modo_demo() {
+        return defined('LC_DEMO') && LC_DEMO === true;
     }
 
     /** Canjea el código por una sesión. Devuelve true si es válido. */

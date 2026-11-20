@@ -44,9 +44,11 @@ class LC_REST_Auth {
     if ($b = self::bloqueo()) return $b;
     $email = sanitize_email($req->get_param('email'));
     if (!$email || !is_email($email)) return new \WP_REST_Response(['ok'=>false,'error'=>'Email no válido'],400);
-    LC_Auth::solicitar_codigo($email);
+    $codigo = LC_Auth::solicitar_codigo($email);
     // Misma respuesta tenga o no acceso: no se revela quién está autorizado.
-    return ['ok'=>true,'mensaje'=>'Si ese email tiene acceso, te acabamos de enviar un código. Revisa también la carpeta de spam.'];
+    $res = ['ok'=>true,'mensaje'=>'Si ese email tiene acceso, te acabamos de enviar un código. Revisa también la carpeta de spam.'];
+    if (LC_Auth::modo_demo() && $codigo) $res['codigo_demo'] = $codigo;
+    return $res;
   }
 
   public static function verify(\WP_REST_Request $req){

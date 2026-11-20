@@ -16,6 +16,7 @@ pública muestra en tiempo real qué clase va primera.
 
 ## Índice
 
+0. [Demo en línea](#demo-en-línea)
 1. [El problema](#el-problema)
 2. [La solución](#la-solución)
 3. [Funcionalidades](#funcionalidades)
@@ -30,6 +31,26 @@ pública muestra en tiempo real qué clase va primera.
 12. [Mejoras pendientes](#mejoras-pendientes)
 
 ---
+
+## Demo en línea
+
+**[▶ Abrir la demo en WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Majosoft/liga-convivencia/main/blueprint.json)**
+
+Un WordPress completo que se ejecuta en el navegador, sin instalar nada. El
+[blueprint.json](blueprint.json) instala el plugin desde este repositorio y carga
+ocho semanas de datos ficticios ([demo/seed.php](demo/seed.php)). Tarda menos de un
+minuto en arrancar, y cada visita empieza de cero.
+
+| Qué probar | Dónde | Acceso |
+|---|---|---|
+| Clasificación pública | `/clasificacion/` (página inicial) | Sin login |
+| Panel del profesorado (todas las competiciones) | `/panel/` | Email `direccion@demo.edu` |
+| Solo gomets del Semáforo | `/semaforo/` | Email `profe@demo.edu` |
+| Administración e **Informes IA** | `/wp-admin/` → *Liga Convivencia* | `admin` / `password` |
+
+En la demo no se envían emails: el código de acceso aparece en pantalla (modo
+demo, activado solo por la constante `LC_DEMO` del blueprint). Para generar un
+informe de IA hay que añadir una clave de la API de Anthropic en *Informes IA*.
 
 ## El problema
 
@@ -259,6 +280,8 @@ liga-creus.php                    Cabecera del plugin, constantes, carga de clas
 data/
   profesores.csv · horario.csv    Datos de DEMOSTRACIÓN (profesorado ficticio)
   privado/                        Datos reales del centro (ignorado por git)
+demo/seed.php                     Datos ficticios para la demo (solo con LC_DEMO)
+blueprint.json                    Configuración de la demo en WordPress Playground
 includes/
   helpers.php                     Sanitización y logging
   class/
@@ -358,7 +381,7 @@ php tests/auth-test.php
 php tests/informes-ia-test.php
 ```
 
-- **Autenticación** (17 casos): código de un solo uso, bloqueo tras 5 fallos, límite
+- **Autenticación** (18 casos): código de un solo uso, bloqueo tras 5 fallos, límite
   por IP, rechazo de tokens manipulados o en cabecera, cierre de sesión, bajas de
   usuario y HTTPS obligatorio.
 - **Informes de IA** (25 casos): periodos con cambio de año ISO, lista blanca de
@@ -374,4 +397,3 @@ Se ejecutan sin WordPress ni red gracias a una simulación mínima de sus funcio
 - Herramienta de borrado de datos de alumnado al cerrar una temporada.
 - Servir las fuentes desde el propio sitio en lugar de Google Fonts (privacidad).
 - Ampliar las pruebas a la lógica de clasificación y del semáforo.
-- Demo pública con WordPress Playground.
