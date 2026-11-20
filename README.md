@@ -8,7 +8,7 @@ pública muestra en tiempo real qué clase va primera.
 > **Trabajo Fin de Máster** del Máster de Programación con IA. Es un proyecto real:
 > se usa en un instituto durante el curso 2026-27.
 
-- **Versión**: 1.2.0
+- **Versión**: 1.2.1
 - **Requiere**: WordPress 5.8+, PHP 7.3+, HTTPS en producción
 - **Licencia del código**: propiedad del autor (Majosoft)
 

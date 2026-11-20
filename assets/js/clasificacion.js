@@ -247,7 +247,7 @@
             <tr>
                 <td>${i + 1}</td>
                 <td>${claseCell(r.clase, r.escudo_url)}</td>
-                <td>${r.puntos}</td>
+                <td>${lcPuntos(r.puntos)}</td>
             </tr>
         `).join('');
         return `
@@ -304,7 +304,7 @@
                 <td>${index + 1}</td>
                 <td>${lcEscapar(a.nombre)}</td>
                 <td>${lcEscapar(a.clase)}</td>
-                <td class="lc-total">${a.puntos}</td>
+                <td class="lc-total">${lcPuntos(a.puntos)}</td>
             </tr>
         `).join('');
     }
@@ -317,13 +317,13 @@
             <tr>
                 <td>${index + 1}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
-                <td>${clase.semaforo}</td>
-                <td>${clase.deportes}</td>
-                <td>${clase.partes}</td>
-                <td>${clase.extraordinarias ?? 0}</td>
-                <td>${clase.biblioteca}</td>
-                <td>${clase.tiempo_aprendizaje ?? 0}</td>
-                <td class="lc-total">${clase.total}</td>
+                <td>${lcPuntos(clase.semaforo)}</td>
+                <td>${lcPuntos(clase.deportes)}</td>
+                <td>${lcPuntos(clase.partes)}</td>
+                <td>${lcPuntos(clase.extraordinarias)}</td>
+                <td>${lcPuntos(clase.biblioteca)}</td>
+                <td>${lcPuntos(clase.tiempo_aprendizaje)}</td>
+                <td class="lc-total">${lcPuntos(clase.total)}</td>
             </tr>
         `).join('');
     }
@@ -339,7 +339,7 @@
             <tr>
                 <td>${index + 1}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
-                <td>${clase.semaforo}</td>
+                <td>${lcPuntos(clase.semaforo)}</td>
             </tr>
         `).join('');
     }
@@ -354,7 +354,7 @@
             <tr>
                 <td>${index + 1}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
-                <td class="lc-total">${clase.extraordinarias ?? 0}</td>
+                <td class="lc-total">${lcPuntos(clase.extraordinarias)}</td>
             </tr>
         `).join('');
     }
@@ -369,7 +369,7 @@
             <tr>
                 <td>${index + 1}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
-                <td class="lc-total">${clase.tiempo_aprendizaje ?? 0}</td>
+                <td class="lc-total">${lcPuntos(clase.tiempo_aprendizaje)}</td>
             </tr>
         `).join('');
     }
@@ -385,10 +385,10 @@
             <tr>
                 <td>${index + 1}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
-                <td>${clase.partes_positivos}</td>
-                <td>${clase.partes_leves}</td>
-                <td>${clase.partes_graves}</td>
-                <td class="lc-total">${clase.partes}</td>
+                <td>${lcPuntos(clase.partes_positivos)}</td>
+                <td>${lcPuntos(clase.partes_leves)}</td>
+                <td>${lcPuntos(clase.partes_graves)}</td>
+                <td class="lc-total">${lcPuntos(clase.partes)}</td>
             </tr>
         `).join('');
     }

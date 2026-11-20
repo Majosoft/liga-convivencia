@@ -3,6 +3,13 @@
 // Escapa texto para meterlo en HTML (contenido o atributo). Todo lo que venga
 // del servidor o lo escriba alguien (nombres, notas, emails...) pasa por aquí
 // antes de ir a innerHTML: el servidor quita etiquetas, pero no comillas.
+// Puntos tal como se enseñan en las clasificaciones: enteros. Biblioteca reparte
+// los puntos de una actividad entre sus participantes y deja decimales
+// (3 / 2 = 1,5), que en una tabla de liga solo estorban.
+function lcPuntos(n){
+  return Math.round(Number(n) || 0);
+}
+
 function lcEscapar(s){
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
@@ -430,7 +437,7 @@ function renderRankingAlumnos(ranking){
     return '<div class="lc-meta">Sin datos todavía.</div>';
   }
   const rows = ranking.map((r, i) =>
-    `<tr><td>${i + 1}</td><td>${lcEscapar(r.nombre)}</td><td>${lcEscapar(r.clase)}</td><td>${r.puntos}</td></tr>`
+    `<tr><td>${i + 1}</td><td>${lcEscapar(r.nombre)}</td><td>${lcEscapar(r.clase)}</td><td>${lcPuntos(r.puntos)}</td></tr>`
   ).join('');
   return `
     <div class="lc-table-container">
@@ -487,7 +494,7 @@ function renderRankingTable(ranking){
   }
   const rows = ranking.map((r, i) => {
     const img = r.escudo_url ? `<img class="lc-escudo" src="${lcEscapar(r.escudo_url)}" alt="" loading="lazy">` : '';
-    return `<tr><td>${i + 1}</td><td><span class="lc-clase-cell">${img}<span>${lcEscapar(r.clase)}</span></span></td><td>${r.puntos}</td></tr>`;
+    return `<tr><td>${i + 1}</td><td><span class="lc-clase-cell">${img}<span>${lcEscapar(r.clase)}</span></span></td><td>${lcPuntos(r.puntos)}</td></tr>`;
   }).join('');
   return `
     <div class="lc-table-container">

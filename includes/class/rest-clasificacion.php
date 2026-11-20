@@ -679,7 +679,8 @@ class LC_REST_Clasificacion {
             $t['partes'] = ($t['partes_positivos'] * $pts_partes['positivo'])
                          + ($t['partes_leves'] * $pts_partes['leve'])
                          + ($t['partes_graves'] * $pts_partes['grave']);
-            $t['total'] = $t['semaforo'] + $t['deportes'] + $t['partes'] + $t['extraordinarias'] + $t['biblioteca'] + $t['tiempo_aprendizaje'];
+            // Redondeado: sumar decimales en coma flotante dejaba totales como 524.9200000000001.
+            $t['total'] = round($t['semaforo'] + $t['deportes'] + $t['partes'] + $t['extraordinarias'] + $t['biblioteca'] + $t['tiempo_aprendizaje'], 2);
         }
         unset($t);
 
