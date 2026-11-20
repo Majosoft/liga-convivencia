@@ -75,21 +75,36 @@ function bindTiempoAprendizaje(container, ctx){
     return { year: parseInt(y, 10), month: parseInt(m, 10) };
   }
 
-  // Carga los puntos del registro actual (clase + mes seleccionados)
+  // Carga los puntos del registro actual (clase + mes seleccionados).
+  // Cada carga lleva un número: si llega tarde (ya se cambió de clase o mes, o
+  // el profesor ya escribió los puntos), se descarta. Antes la respuesta lenta
+  // machacaba con 0 lo recién escrito y se acababa guardando 0 en esa clase.
+  let cargaActual = 0;
+  let editado = false;
+  puntosInp.addEventListener('input', () => { editado = true; });
+
   async function loadRecord(){
     const { year, month } = parseMes();
     const clase = claseSel.value;
     if (!clase || !year || !month) return;
 
+    const miCarga = ++cargaActual;
+    editado = false;
+    puntosInp.value = '';
+    puntosInp.placeholder = 'Cargando…';
     setStatus(msg, '', 'info');
     try {
       const q = new URLSearchParams({ clase, year, month });
       const res = await window.LC_get(window.LC_EP + '/tiempo-aprendizaje?' + q.toString());
+      if (miCarga !== cargaActual) return;
+      puntosInp.placeholder = '';
       if (res && res.ok) {
-        puntosInp.value = res.puntos || 0;
-        if (!res.exists) setStatus(msg, 'Sin datos para este mes', 'info');
+        if (!editado) puntosInp.value = res.puntos || 0;
+        if (!res.exists) setStatus(msg, `${clase}: sin datos para este mes`, 'info');
       }
     } catch(e) {
+      if (miCarga !== cargaActual) return;
+      puntosInp.placeholder = '';
       setStatus(msg, 'Error al cargar', 'error');
       console.error('GET /tiempo-aprendizaje', e);
     }
@@ -119,6 +134,7 @@ function bindTiempoAprendizaje(container, ctx){
     const puntos = parseInt(puntosInp.value || '0', 10);
 
     if (!clase) return setStatus(msg, 'Selecciona una clase', 'error');
+    if (puntosInp.value === '' || Number.isNaN(puntos)) return setStatus(msg, 'Escribe los puntos', 'error');
 
     setButtonLoading(guardarBtn, true);
     try {
@@ -126,7 +142,9 @@ function bindTiempoAprendizaje(container, ctx){
       setButtonLoading(guardarBtn, false);
       if (res && res.ok) {
         puntosInp.value = res.puntos;
-        setStatus(msg, 'Guardado ✅', 'success');
+        editado = false;
+        const mesTxt = mesSel.options[mesSel.selectedIndex]?.text || '';
+        setStatus(msg, `Guardado ✅ ${clase} · ${mesTxt}: ${res.puntos} puntos`, 'success');
         loadRanking();
       } else {
         setStatus(msg, 'Error: ' + (res?.error || 'Error desconocido'), 'error');

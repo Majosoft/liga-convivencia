@@ -8,8 +8,11 @@ class LC_Activator {
 
     self::create_tables($wpdb, $cc, $p);
     self::migrate_deportes_unique_key($wpdb, $p);
+    self::migrate_tiempo_aprendizaje_legacy($wpdb, $p);
     self::migrate_partes_legacy($wpdb, $p);
     self::migrate_partes_severidad($wpdb, $p);
+    self::migrate_partes_a_alumnos($wpdb, $p);
+    self::migrate_extraordinarias_legacy($wpdb, $p);
     self::migrate_emails_to_usuarios();
     self::migrate_usuarios_sin_pin();
 
@@ -72,6 +75,106 @@ class LC_Activator {
     $existe = $wpdb->get_var("SHOW INDEX FROM {$table} WHERE Key_name = 'uniq_match'");
     if (!$existe) return;
     $wpdb->query("ALTER TABLE {$table} DROP INDEX uniq_match");
+  }
+
+  // Repara lc_tiempo_aprendizaje en las instalaciones que vienen de la versión
+  // antigua (≤ 0.5), que guardaba el mes como texto en "mes" ("2026-10") con la
+  // clave única uniq_mes_clase (mes, clase). dbDelta añadió iso_year/iso_month
+  // pero no sabe quitar índices ni columnas, así que quedaban dos problemas:
+  // - Las altas nuevas no rellenan "mes" (NOT NULL): según el modo SQL, o
+  //   fallaban o entraban con mes = '', y entonces uniq_mes_clase solo admitía
+  //   una fila por clase y cada mes nuevo pisaba el anterior.
+  // - La clave buena clase_mes no llegaba a crearse: las filas antiguas tenían
+  //   iso_year/iso_month = 0 y chocaban entre sí.
+  // Aquí se trasladan los meses antiguos a iso_year/iso_month, se quitan los
+  // índices viejos, se deja "mes" opcional, se eliminan duplicados (gana la
+  // fila más reciente) y se crea clase_mes si falta. Es idempotente.
+  private static function migrate_tiempo_aprendizaje_legacy($wpdb, $p){
+    $table = "{$p}lc_tiempo_aprendizaje";
+    if (!$wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'mes'")) return;
+
+    $wpdb->query("UPDATE {$table}
+      SET iso_year = CAST(LEFT(mes, 4) AS UNSIGNED), iso_month = CAST(SUBSTRING(mes, 6, 2) AS UNSIGNED)
+      WHERE (iso_year = 0 OR iso_month = 0) AND mes REGEXP '^[0-9]{4}-[0-9]{2}$'");
+
+    foreach (['uniq_mes_clase', 'idx_mes'] as $idx) {
+      if ($wpdb->get_var($wpdb->prepare("SHOW INDEX FROM {$table} WHERE Key_name = %s", $idx))) {
+        $wpdb->query("ALTER TABLE {$table} DROP INDEX {$idx}");
+      }
+    }
+    $wpdb->query("ALTER TABLE {$table} MODIFY mes VARCHAR(7) NULL DEFAULT NULL");
+
+    // Filas que no se pudieron fechar: no cuentan en ninguna clasificación.
+    $wpdb->query("DELETE FROM {$table} WHERE iso_year = 0 OR iso_month = 0");
+
+    $wpdb->query("DELETE t1 FROM {$table} t1
+      JOIN {$table} t2 ON t1.clase = t2.clase AND t1.iso_year = t2.iso_year
+        AND t1.iso_month = t2.iso_month AND t1.id < t2.id");
+
+    if (!$wpdb->get_var("SHOW INDEX FROM {$table} WHERE Key_name = 'clase_mes'")) {
+      $wpdb->query("ALTER TABLE {$table} ADD UNIQUE KEY clase_mes (clase, iso_year, iso_month)");
+    }
+  }
+
+  // Los partes registrados con el modelo antiguo (contadores por clase y semana
+  // en lc_partes) dejaron de contar en la Clasificación al pasar a
+  // lc_partes_alumnos, que es lo único que se lee ahora. Se trasladan como
+  // partes "a toda la clase" (alumno_id = 0), uno por cada unidad del contador.
+  // Solo las semanas de una clase que aún no tengan ningún parte en la tabla
+  // nueva: así no se duplica nada si se vuelve a ejecutar ni si alguien ya los
+  // había vuelto a meter a mano.
+  private static function migrate_partes_a_alumnos($wpdb, $p){
+    $old = "{$p}lc_partes";
+    $new = "{$p}lc_partes_alumnos";
+    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $old)) !== $old) return;
+
+    $filas = $wpdb->get_results(
+      "SELECT o.clase, o.iso_year, o.iso_week, o.partes_positivos, o.partes_leves, o.partes_graves, o.created_by
+       FROM {$old} o
+       WHERE (o.partes_positivos > 0 OR o.partes_leves > 0 OR o.partes_graves > 0)
+         AND NOT EXISTS (SELECT 1 FROM {$new} n
+           WHERE n.clase = o.clase AND n.iso_year = o.iso_year AND n.iso_week = o.iso_week)",
+      ARRAY_A
+    );
+    foreach ((array) $filas as $f) {
+      foreach (['positivo' => 'partes_positivos', 'leve' => 'partes_leves', 'grave' => 'partes_graves'] as $tipo => $col) {
+        for ($i = 0; $i < (int) $f[$col]; $i++) {
+          $wpdb->insert($new, [
+            'alumno_id'  => 0,
+            'clase'      => $f['clase'],
+            'iso_year'   => (int) $f['iso_year'],
+            'iso_week'   => (int) $f['iso_week'],
+            'tipo'       => $tipo,
+            'notas'      => 'Migrado del registro semanal anterior',
+            'created_by' => $f['created_by'],
+          ], ['%d', '%s', '%d', '%d', '%s', '%s', '%s']);
+        }
+      }
+    }
+  }
+
+  // lc_extraordinarias de la versión antigua (≤ 0.5) guardaba el nombre de la
+  // actividad en "actividad" (NOT NULL, sin valor por defecto) y permitía
+  // semana NULL. La versión actual usa "nombre" y no rellena "actividad", así
+  // que cada alta nueva fallaba o entraba a medias, y las actividades antiguas
+  // aparecían sin nombre en el panel. Se copia el nombre, se deja "actividad"
+  // opcional y se crea la clave única si dbDelta no pudo. Idempotente.
+  private static function migrate_extraordinarias_legacy($wpdb, $p){
+    $table = "{$p}lc_extraordinarias";
+    if (!$wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'actividad'")) return;
+
+    $wpdb->query("UPDATE {$table} SET nombre = actividad WHERE (nombre = '' OR nombre IS NULL) AND actividad <> ''");
+    $wpdb->query("ALTER TABLE {$table} MODIFY actividad VARCHAR(100) NULL DEFAULT NULL");
+
+    // Una clase repetida en la misma actividad y semana impediría crear la
+    // clave única: se queda la fila más reciente.
+    $wpdb->query("DELETE t1 FROM {$table} t1
+      JOIN {$table} t2 ON t1.nombre = t2.nombre AND t1.iso_year = t2.iso_year
+        AND t1.iso_week = t2.iso_week AND t1.clase = t2.clase AND t1.id < t2.id");
+
+    if (!$wpdb->get_var("SHOW INDEX FROM {$table} WHERE Key_name = 'nombre_semana_clase'")) {
+      $wpdb->query("ALTER TABLE {$table} ADD UNIQUE KEY nombre_semana_clase (nombre(100), iso_year, iso_week, clase)");
+    }
   }
 
   private static function create_tables($wpdb, $cc, $p){

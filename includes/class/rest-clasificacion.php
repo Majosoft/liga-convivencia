@@ -208,11 +208,25 @@ class LC_REST_Clasificacion {
         if ($periodo === 'mensual') {
             $year = (int) $req->get_param('year');
             $month = (int) $req->get_param('month');
-            if (!$year || !$month) return ['from' => null, 'to' => null];
-            $from = self::date_to_iso_week(sprintf('%04d-%02d-01', $year, $month));
-            $lastDay = date('t', strtotime(sprintf('%04d-%02d-01', $year, $month)));
-            $to = self::date_to_iso_week(sprintf('%04d-%02d-%02d', $year, $month, $lastDay));
-            return ['from' => $from, 'to' => $to];
+            if (!$year || !$month || $month < 1 || $month > 12) return ['from' => null, 'to' => null];
+            // Cada semana pertenece a UN solo mes: el de su miércoles, donde cae
+            // la mayoría de sus días lectivos. Antes se tomaba desde la semana del
+            // día 1 hasta la del último día, y una semana partida (p. ej. 26 oct –
+            // 1 nov) contaba entera en los dos meses: los meses no sumaban el total.
+            $primer_mie = new \DateTime(sprintf('%04d-%02d-01', $year, $month));
+            $primer_mie->modify('wednesday this week');
+            if ((int) $primer_mie->format('n') !== $month) $primer_mie->modify('+7 days');
+            $ultimo_mie = new \DateTime(sprintf('%04d-%02d-01', $year, $month));
+            $ultimo_mie->modify('last day of this month')->modify('wednesday this week');
+            if ((int) $ultimo_mie->format('n') !== $month) $ultimo_mie->modify('-7 days');
+            return [
+                'from' => self::date_to_iso_week($primer_mie->format('Y-m-d')),
+                'to' => self::date_to_iso_week($ultimo_mie->format('Y-m-d')),
+                'semanas' => [
+                    (clone $primer_mie)->modify('-2 days')->format('Y-m-d'),
+                    (clone $ultimo_mie)->modify('+2 days')->format('Y-m-d'),
+                ],
+            ];
         }
 
         if ($periodo === 'trimestral') {
@@ -672,6 +686,8 @@ class LC_REST_Clasificacion {
         return [
             'ok' => true,
             'periodo' => $periodo,
+            // Mensual: primer lunes y último viernes de las semanas que cuenta ese mes.
+            'semanas_mes' => $range['semanas'] ?? null,
             'alumnos' => self::ranking_alumnos($puntos_alumno_global, $alumnos_map),
             'alumnos_partes' => self::ranking_alumnos($puntos_alumno_partes, $alumnos_map),
             'trimestres' => self::trimestres_visibles(),

@@ -93,10 +93,17 @@
     }
 
     // Etiqueta contextual junto al filtro: qué temporada se está viendo en "General".
-    function actualizarEtiquetaTemporada(temporadaActiva, periodo) {
+    // En "Mensual" indica qué semanas cuenta ese mes: cada semana va entera al
+    // mes de su miércoles, así que el rango puede empezar o acabar en otro mes.
+    function actualizarEtiquetaTemporada(temporadaActiva, periodo, semanasMes) {
         const label = document.getElementById('lc-temporada-actual-label');
         if (!label) return;
-        label.textContent = (periodo === 'general' && temporadaActiva) ? `Temporada actual: ${temporadaActiva.label}` : '';
+        const fmt = (iso) => { const [, m, d] = iso.split('-'); return `${d}/${m}`; };
+        if (periodo === 'mensual' && Array.isArray(semanasMes)) {
+            label.textContent = `Semanas del ${fmt(semanasMes[0])} al ${fmt(semanasMes[1])} (T. Aprendizaje: el mes completo)`;
+        } else {
+            label.textContent = (periodo === 'general' && temporadaActiva) ? `Temporada actual: ${temporadaActiva.label}` : '';
+        }
     }
 
     // Construye los parámetros de consulta según el período seleccionado.
@@ -175,7 +182,7 @@
                 alumnosData = data.alumnos || [];
                 poblarTrimestres(data.trimestres);
                 poblarTemporadas(data.temporadas);
-                actualizarEtiquetaTemporada(data.temporada_activa, data.periodo);
+                actualizarEtiquetaTemporada(data.temporada_activa, data.periodo, data.semanas_mes);
                 renderClasificacion();
                 hideLoading();
             } else {

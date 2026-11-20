@@ -253,7 +253,9 @@ class LC_Horario {
             $semanas[date('o', $ts) . '-' . date('W', $ts)] = [(int) date('o', $ts), (int) date('W', $ts)];
         }
         foreach ($semanas as [$y, $w]) {
-            foreach (LC_Competiciones::get_clases_activas() as $c) self::recalcular_semana($c, $y, $w);
+            // Solo las clases con algún gomet esa semana: si no, una clase sin
+            // gomets quedaba a 0 y se perdía lo que se hubiera registrado a mano.
+            foreach (LC_Competiciones::get_clases_activas() as $c) self::recalcular_semana($c, $y, $w, true);
         }
     }
 
@@ -341,7 +343,7 @@ class LC_Horario {
      * menor valor de las sesiones que cubren a la clase (si hay alguno), y se
      * guarda en lc_semaforo como antes hacía el admin a mano.
      */
-    public static function recalcular_semana($clase, $year, $week) {
+    public static function recalcular_semana($clase, $year, $week, $solo_si_hay_gomets = false) {
         global $wpdb; $p = $wpdb->prefix;
         $lunes = (new DateTime())->setISODate($year, $week, 1)->format('Y-m-d');
         $viernes = (new DateTime())->setISODate($year, $week, 5)->format('Y-m-d');
@@ -350,6 +352,7 @@ class LC_Horario {
              FROM {$p}lc_gomets g JOIN {$p}lc_horario h ON h.id = g.sesion_id
              WHERE g.fecha BETWEEN %s AND %s AND FIND_IN_SET(%s, h.clases) > 0",
             $lunes, $viernes, $clase));
+        if (!$filas && $solo_si_hay_gomets) return;
 
         $puntos = LC_Competiciones::get_semaforo();
         $peor = [];
