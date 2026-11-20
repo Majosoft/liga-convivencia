@@ -8,7 +8,7 @@ pública muestra en tiempo real qué clase va primera.
 > **Trabajo Fin de Máster** del Máster de Programación con IA. Es un proyecto real:
 > se usa en un instituto durante el curso 2026-27.
 
-- **Versión**: 1.1.0
+- **Versión**: 1.2.0
 - **Requiere**: WordPress 5.8+, PHP 7.3+, HTTPS en producción
 - **Licencia del código**: propiedad del autor (Majosoft)
 
@@ -59,6 +59,9 @@ ni aplicaciones de tienda:
   (semana, mes, trimestre, temporada), con escudos de clase y rankings por competición.
 - **Administración** desde el escritorio de WordPress: clases, competiciones,
   puntuaciones, calendario, horario, alumnado y quién tiene acceso.
+- **Informes con IA** para el administrador: cada semana y cada mes, Claude analiza
+  los puntos de cada clase y redacta un informe con lo que va bien, las clases a
+  vigilar y propuestas concretas.
 
 ## Funcionalidades
 
@@ -98,6 +101,22 @@ ni aplicaciones de tienda:
 - Ranking de alumnos **solo con méritos** (ver [privacidad](#seguridad-y-privacidad)).
 - Se refresca sola cada 5 minutos.
 
+### Informes de IA (1.2)
+
+Página **Liga Convivencia → Informes IA**, solo para administradores:
+
+- **Informe semanal** (de la semana anterior) y **mensual** (del mes anterior), con
+  las secciones *Resumen*, *Clasificación y cambios*, *Lo que va bien*, *Clases a
+  vigilar* y *Propuestas*.
+- Se generan solos con una tarea diaria de WP-Cron, o al momento con **Generar ahora**.
+- Para cada periodo, el modelo recibe los puntos por clase y competición, la
+  comparación con el periodo anterior, la clasificación de la temporada y el
+  recuento de gomets verdes, amarillos y rojos por clase.
+- Histórico de informes anteriores, con modelo, tokens y coste aproximado de cada uno
+  (unos céntimos por informe).
+- Modelo `claude-opus-5-5` con respaldo automático del servidor
+  (`fallbacks: "default"`) si los filtros de seguridad rechazan la petición.
+
 ### Gestión del curso
 
 - Clases con escudo, deportes, actividades y puntuaciones editables.
@@ -115,6 +134,7 @@ ni aplicaciones de tienda:
 | Frontend | JavaScript sin frameworks ni build (ES2020, `fetch`), CSS con *design tokens* |
 | App móvil | PWA: manifest + service worker servidos por el propio plugin |
 | Autenticación | Código de un solo uso por email + token HMAC-SHA256 en cookie `HttpOnly` |
+| IA | API de Claude (Anthropic), modelo `claude-opus-5-5`, vía `wp_remote_post` + WP-Cron |
 | Pruebas | PHP CLI con simulación de las funciones de WordPress |
 | Desarrollo | Claude Code (IA), Git/GitHub, Local (WordPress local), Playwright (capturas) |
 
@@ -137,7 +157,10 @@ Sin dependencias de Composer ni npm: el plugin se instala copiando una carpeta.
 5. Crea dos páginas: una con `[lc_panel]` (panel del profesorado) y otra con
    `[liga_creus_clasificacion]` (clasificación pública). Ver
    [ejemplo-clasificacion.md](ejemplo-clasificacion.md).
-6. Opcional: las apps instalables están en `https://tu-sitio/app-profesorado/` y
+6. Opcional, **informes de IA**: añade la clave de la API de Anthropic (mejor en
+   `wp-config.php`: `define('LC_ANTHROPIC_API_KEY', 'sk-ant-...');`, o en la propia
+   página *Informes IA*) y marca *Generar automáticamente*.
+7. Opcional: las apps instalables están en `https://tu-sitio/app-profesorado/` y
    `https://tu-sitio/semaforo/` (las direcciones se cambian en el admin).
 
 En producción el sitio **debe ir por HTTPS**: sin él, el plugin no permite iniciar
@@ -194,6 +217,10 @@ hizo una auditoría completa con ayuda de IA y se corrigió todo lo encontrado.
   extraordinarias) y solo si suman puntos. Los partes nunca aparecen asociados a un
   nombre en público; el ranking de partes por alumno solo llega al profesorado con
   acceso completo y con `Cache-Control: private, no-store`.
+- **Informes de IA**: a la API de Anthropic solo se envían datos **agregados por
+  clase** (lista blanca explícita de campos); nunca nombres de alumnos ni de profesores.
+  El texto del modelo se escapa antes de mostrarse, y la clave de la API puede vivir
+  en `wp-config.php` en lugar de en la base de datos.
 - Los datos reales del profesorado y el horario se mantienen fuera del repositorio;
   se limpió el historial de git antes de publicarlo.
 - Pendiente para el centro: política de conservación (borrado al cerrar el curso) e
@@ -205,6 +232,10 @@ El proyecto se ha desarrollado con **Claude Code** (Anthropic) como asistente de
 programación en el editor, sobre una base inicial propia (versión 0.x). La IA ha
 intervenido en todo el ciclo:
 
+La IA está presente de dos formas: como **herramienta de desarrollo** y como
+**funcionalidad del producto** (los [informes semanales y mensuales](#informes-de-ia-12)
+que redacta Claude para el administrador).
+
 | Fase | Uso de la IA |
 |---|---|
 | Análisis | Traducir las reglas del centro (desdobles, apoyos, gomet de menor valor) a un modelo de datos de horario y gomets |
@@ -212,6 +243,7 @@ intervenido en todo el ciclo:
 | Implementación | Endpoints REST, migraciones de esquema idempotentes, lógica de clasificación por periodos ISO |
 | Depuración | Diagnóstico directo en la base de datos local (MySQL de Local) y capturas con Playwright para verificar la interfaz |
 | Seguridad | Auditoría del código: se detectaron login sin verificación, exposición pública de datos de menores y XSS en atributos, y se corrigieron con pruebas |
+| Producto | Diseño de los informes de IA: qué datos enviar (y cuáles no), prompt con secciones fijas, llamada a la API con respaldo ante rechazos, y pruebas con respuestas simuladas |
 | Datos | Anonimización del horario real (profesorado ficticio con la misma estructura) y limpieza del historial de git |
 | Documentación | Este README, comentarios en el código explicando el *porqué* y mensajes de commit descriptivos |
 
@@ -238,6 +270,7 @@ includes/
     admin.php                     Menú, pestañas, ajustes y asistente de temporada
     admin-profesorado.php         Lista Semáforo y Horario
     app.php · app-semaforo.php    Las dos PWA (página, manifest, service worker)
+    informes-ia.php               Informes semanales y mensuales con IA (admin)
     assets.php                    Shortcode [lc_panel] y carga de CSS/JS
     shortcode-clasificacion.php   Shortcode público de la clasificación
     rest-*.php                    Un endpoint REST por módulo (auth, gomets, semáforo,
@@ -249,6 +282,7 @@ assets/
   img/   Iconos de las dos apps
 tests/
   auth-test.php                   Pruebas de autenticación (PHP CLI)
+  informes-ia-test.php            Pruebas de los informes de IA (PHP CLI)
 ```
 
 Convenciones: clases PHP con prefijo `LC_`, CSS con `lc-`, opciones con `lc_`. Cada
@@ -292,6 +326,7 @@ Las semanas son **ISO-8601** (`iso_year` + `iso_week`).
 | `lc_extraordinarias` | Actividades extraordinarias | `(nombre, iso_year, iso_week, clase)` |
 | `lc_tiempo_aprendizaje` | Puntos mensuales | `(clase, iso_year, iso_month)` |
 | `lc_alumnos` | Nombre de pila y clase | `(nombre, clase)` |
+| `lc_informes` | Informes de IA | `(tipo, iso_year, num)` |
 | `lc_partes` | Modelo antiguo (se migra a `lc_partes_alumnos`) | `(clase, iso_year, iso_week)` |
 
 Guardar dos veces la misma semana actualiza la fila en vez de duplicarla. El
@@ -312,6 +347,7 @@ activador migra los esquemas de versiones anteriores y es idempotente.
 - [WordPress](https://wordpress.org/) y su [API REST](https://developer.wordpress.org/rest-api/).
 - [Google Fonts](https://fonts.google.com/): tipografías *Inter* y *Baloo 2*.
 - Iconos de las apps: propios (`assets/img/`).
+- [API de Claude](https://platform.claude.com/docs) (Anthropic): redacción de los informes. Requiere una clave de API de pago por uso.
 - [Claude Code](https://claude.com/claude-code): asistente de IA usado en el desarrollo.
 - [Local](https://localwp.com/): entorno WordPress local. [Playwright](https://playwright.dev/): capturas para verificar la interfaz.
 
@@ -319,14 +355,21 @@ activador migra los esquemas de versiones anteriores y es idempotente.
 
 ```bash
 php tests/auth-test.php
+php tests/informes-ia-test.php
 ```
 
-17 casos sobre la autenticación: código de un solo uso, bloqueo tras 5 fallos, límite
-por IP, rechazo de tokens manipulados o en cabecera, cierre de sesión, bajas de
-usuario y HTTPS obligatorio. Se ejecutan sin WordPress gracias a una simulación
-mínima de sus funciones.
+- **Autenticación** (17 casos): código de un solo uso, bloqueo tras 5 fallos, límite
+  por IP, rechazo de tokens manipulados o en cabecera, cierre de sesión, bajas de
+  usuario y HTTPS obligatorio.
+- **Informes de IA** (25 casos): periodos con cambio de año ISO, lista blanca de
+  campos enviados, escapado del Markdown del modelo, y la petición a la API
+  (cabeceras, modelo, respaldo, rechazos y errores) con respuestas simuladas.
+
+Se ejecutan sin WordPress ni red gracias a una simulación mínima de sus funciones.
 
 ## Mejoras pendientes
+
+- Enviar el informe por email al administrador además de mostrarlo en el admin.
 
 - Herramienta de borrado de datos de alumnado al cerrar una temporada.
 - Servir las fuentes desde el propio sitio en lugar de Google Fonts (privacidad).

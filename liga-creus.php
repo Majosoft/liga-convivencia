@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Liga Convivencia
  * Description: Login por email de usuarios autorizados + registro de competiciones (Semáforo, Deportes, Partes, Biblioteca, Extraordinarias, Tiempo de Aprendizaje) y clasificación pública.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Majosoft
  */
 
@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) { exit; }
 // Definir constantes del plugin
 define('LC_PATH', plugin_dir_path(__FILE__));
 define('LC_URL', plugin_dir_url(__FILE__));
-define('LC_VERSION', '1.1.0');
+define('LC_VERSION', '1.2.0');
 
 // Cargar archivos necesarios
 require_once LC_PATH . 'includes/helpers.php';
@@ -36,9 +36,11 @@ require_once LC_PATH . 'includes/class/rest-clasificacion.php';
 require_once LC_PATH . 'includes/class/shortcode-clasificacion.php';
 require_once LC_PATH . 'includes/class/app.php';
 require_once LC_PATH . 'includes/class/app-semaforo.php';
+require_once LC_PATH . 'includes/class/informes-ia.php';
 
 // Hook de activación
 register_activation_hook(__FILE__, ['LC_Activator', 'activate']);
+register_deactivation_hook(__FILE__, ['LC_Informes_IA', 'desactivar']);
 
 // Aplica cambios de esquema (ej. nuevas columnas) sin tener que reactivar el plugin a mano
 add_action('init', function() {
@@ -64,6 +66,9 @@ add_action('init', function() {
     LC_App::init();
     // 1.0: app instalable solo del Semáforo (https://sitio/<slug>/, por defecto /semaforo/)
     LC_App_Semaforo::init();
+
+    // 1.2: informes semanales y mensuales redactados por IA (solo admin)
+    LC_Informes_IA::init();
 
     // Registrar shortcodes
     LC_Shortcode_Clasificacion::register();

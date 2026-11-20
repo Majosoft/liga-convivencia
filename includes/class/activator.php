@@ -20,6 +20,9 @@ class LC_Activator {
     // primera vez carga el horario y los profesores de 2026-27 (data/).
     LC_Horario::create_tables($wpdb, $cc, $p);
     LC_Horario::seed();
+
+    // 1.2: informes de IA para el administrador.
+    LC_Informes_IA::create_tables($wpdb, $cc);
   }
 
   // Migra la antigua lista de "emails autorizados" (opción suelta lc_allowed_emails)
