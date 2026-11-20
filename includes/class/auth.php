@@ -1,6 +1,18 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
+/**
+ * Acceso y sesión del profesorado (sin cuentas de WordPress).
+ *
+ * - Dos listas: Formularios (acceso completo, lc_usuarios) y Semáforo
+ *   (profesorado del horario con email, lc_profesores).
+ * - Login en dos pasos con código de un solo uso enviado por email, con
+ *   límites por email y por IP y sin revelar quién tiene acceso.
+ * - Sesión: token HMAC en cookie HttpOnly/SameSite=Strict, con versión por
+ *   usuario para que cerrar sesión lo revoque.
+ *
+ * Documentación: docs/modulos/acceso.md · Pruebas: tests/auth-test.php
+ */
 class LC_Auth {
     const OPT_KEY_LEGACY = 'lc_allowed_emails';  // lista antigua de emails, solo para migración
     const OPT_USERS = 'lc_usuarios';             // [{email, creado}]

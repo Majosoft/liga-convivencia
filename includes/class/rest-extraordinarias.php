@@ -1,6 +1,13 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
+/**
+ * API de Actividades extraordinarias: actividades de nombre libre en las que
+ * cada clase participante recibe 10, 8, 5, 3 o 0 puntos.
+ *
+ * GET/POST/DELETE /extraordinarias. Requiere acceso completo.
+ * Documentación: docs/modulos/extraordinarias.md
+ */
 class LC_REST_Extraordinarias {
 
     public static function register(){

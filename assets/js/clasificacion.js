@@ -1,4 +1,11 @@
-// JavaScript para Clasificación
+// Página pública de la clasificación ([liga_creus_clasificacion]).
+//
+// Filtros de periodo (general, semanal, mensual, trimestral, temporada),
+// pestañas por competición con sus sub-rankings, ranking de alumnos (solo
+// méritos) y refresco automático cada 5 minutos. Todo lo que viene del
+// servidor se escapa con lcEscapar() y los empates comparten puesto.
+//
+// Documentación: docs/modulos/clasificacion.md
 (function() {
     'use strict';
     

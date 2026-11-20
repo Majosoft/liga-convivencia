@@ -1,6 +1,13 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
+/**
+ * API de Biblioteca: actividades por participantes (reparto de puntos),
+ * enfrentamientos entre clases y partidas entre alumnos.
+ *
+ * GET/POST/DELETE /biblioteca. Requiere acceso completo.
+ * Documentación: docs/modulos/biblioteca.md
+ */
 class LC_REST_Biblioteca {
 
     public static function register(){

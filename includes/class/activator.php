@@ -1,6 +1,16 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+/**
+ * Instalación y actualización del esquema.
+ *
+ * Crea las tablas del plugin (dbDelta) y aplica las migraciones de versiones
+ * anteriores. Todas son idempotentes: se pueden ejecutar varias veces sin
+ * efecto. Se lanza al activar el plugin y, sin reactivarlo, cada vez que
+ * cambia LC_VERSION (ver liga-creus.php).
+ *
+ * Documentación: docs/modulos/configuracion.md
+ */
 class LC_Activator {
   public static function activate(){
     global $wpdb; require_once ABSPATH.'wp-admin/includes/upgrade.php';

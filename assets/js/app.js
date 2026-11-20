@@ -1,4 +1,13 @@
-// Variables globales
+// Panel del profesorado ([lc_panel] y apps PWA).
+//
+// - Sesión: login en dos pasos (email -> código) y comprobación con /auth/me.
+// - Pestañas: una por módulo, según el rol (acceso completo o solo gomets) y la
+//   app desde la que se abre. Cada módulo vive en su ui-X.js (uiX + bindX).
+// - Barra de contexto compartida (clase y semana) que se pasa a cada módulo.
+// - LC_get / LC_post / LC_delete: llamadas a la API con aviso de sesión caducada.
+//
+// Documentación: docs/README.md (arquitectura) y docs/modulos/acceso.md
+
 window.LC_EP = (window.LC_SETTINGS && LC_SETTINGS.endpoint) || (window.wpApiSettings && wpApiSettings.root + 'liga-creus/v1');
 window.LC_NONCE = (window.LC_SETTINGS && LC_SETTINGS.nonce) || '';
 // Versiones anteriores guardaban el token aquí; ahora solo va en cookie HttpOnly.

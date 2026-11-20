@@ -1,4 +1,14 @@
-// Helpers para manejo de semanas y fechas
+// Utilidades compartidas por el panel y la clasificación pública.
+//
+// - Puntos y posiciones: lcPuntos, lcPosiciones (empates), lcFilaPodio.
+// - Seguridad: lcEscapar (todo lo que va a innerHTML).
+// - Configuración que llega en window.LC_SETTINGS: clases, puntuaciones,
+//   deportes, actividades, temporada y trimestres.
+// - Semanas ISO-8601 (isoYearWeek), semanas y meses de la temporada.
+// - Componentes: lista de participantes, selector de alumno con alta al vuelo,
+//   tablas de ranking con conmutador Clases / Alumnos.
+//
+// Documentación: docs/README.md
 
 // Puntos tal como se enseñan en las clasificaciones: enteros (el servidor ya
 // los manda redondeados; esto es por si llega algún valor con decimales).

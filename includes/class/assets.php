@@ -1,6 +1,15 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
+/**
+ * Shortcode [lc_panel]: el panel del profesorado.
+ *
+ * Pinta el contenedor del panel y encola su CSS y JS (helpers, un ui-*.js por
+ * módulo y app.js), con los ajustes que necesita el navegador en
+ * window.LC_SETTINGS (endpoint, clases, puntuaciones, temporada…).
+ *
+ * Documentación: docs/README.md (arquitectura y contrato de los módulos)
+ */
 class LC_Assets {
     
     public static function init(){

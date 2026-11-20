@@ -30,6 +30,8 @@ pública muestra en tiempo real qué clase va primera.
 11. [Pruebas](#pruebas)
 12. [Mejoras pendientes](#mejoras-pendientes)
 
+📚 **Documentación por módulo**: [docs/](docs/README.md). Una ficha por competición y por cada parte del sistema (cómo se usa, reglas, datos, API y código).
+
 ---
 
 ## Demo en línea
@@ -282,6 +284,7 @@ así que el historial muestra qué parte del trabajo se hizo con ella.
 
 ```
 liga-creus.php                    Cabecera del plugin, constantes, carga de clases y hooks
+docs/                             Documentación: arquitectura y una ficha por módulo
 data/
   profesores.csv · horario.csv    Datos de DEMOSTRACIÓN (profesorado ficticio)
   privado/                        Datos reales del centro (ignorado por git)

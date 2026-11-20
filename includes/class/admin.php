@@ -1,6 +1,18 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
+/**
+ * Escritorio de WordPress: menú "Liga Convivencia" y sus páginas.
+ *
+ * Clases, Competición (deportes, biblioteca, semáforo, partes), Calendario
+ * (temporadas, trimestres y asistente de nueva temporada), Alumnos y Acceso
+ * (Lista Formularios, email de prueba y ajustes de las apps). Las listas de
+ * configuración usan la Settings API con su sanitización; las acciones sueltas
+ * (altas, bajas, asistente) van por admin_init con su propio nonce.
+ * Todo exige manage_options.
+ *
+ * Documentación: docs/modulos/configuracion.md
+ */
 class LC_Admin {
 
     public static function init() {

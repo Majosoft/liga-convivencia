@@ -1,6 +1,13 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
+/**
+ * API de Deportes: enfrentamientos entre clases, partidos entre alumnos y
+ * pruebas individuales por marca (puntos por posición).
+ *
+ * GET/POST/DELETE /deportes. Requiere acceso completo.
+ * Documentación: docs/modulos/deportes.md
+ */
 class LC_REST_Deportes {
 
     public static function register(){

@@ -1,6 +1,13 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 
+/**
+ * API de Tiempo de Aprendizaje: puntos mensuales por clase (premia el poco
+ * uso del ticket de baño). Un registro por clase y mes.
+ *
+ * GET/POST /tiempo-aprendizaje. Requiere acceso completo.
+ * Documentación: docs/modulos/tiempo-aprendizaje.md
+ */
 class LC_REST_TiempoAprendizaje {
 
     public static function register(){
