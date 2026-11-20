@@ -1,1 +1,8 @@
 .DS_Store
+
+# Datos reales del centro (profesorado y horario): nunca al repositorio
+data/privado/
+
+# Configuración local de Claude Code (rutas y credenciales del entorno local)
+.claude/settings.json
+.claude/settings.local.json

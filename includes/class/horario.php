@@ -65,22 +65,30 @@ class LC_Horario {
     }
 
     /**
-     * Primera carga: profesores y horario del curso 2026-27 que vienen con el
-     * plugin (data/), solo si todavía no hay nada. Después se gestionan desde
-     * Liga Convivencia > Profesorado.
+     * Primera carga: profesores y horario que vienen con el plugin, solo si
+     * todavía no hay nada. Después se gestionan desde Liga Convivencia >
+     * Profesorado.
+     *
+     * Los datos reales del centro van en data/privado/ (fuera de git); si no
+     * están, se cargan los de demostración de data/, con profesores ficticios.
      */
+    private static function archivo_datos($nombre) {
+        $privado = LC_PATH . 'data/privado/' . $nombre;
+        return file_exists($privado) ? $privado : LC_PATH . 'data/' . $nombre;
+    }
+
     public static function seed() {
         global $wpdb;
         if (!get_option(self::OPT_PROFESORES)) {
             $profes = [];
-            foreach (self::leer_csv(LC_PATH . 'data/profesores.csv') as $f) {
+            foreach (self::leer_csv(self::archivo_datos('profesores.csv')) as $f) {
                 $profes[] = ['iniciales' => $f['iniciales'], 'nombre' => $f['nombre'], 'email' => ''];
             }
             update_option(self::OPT_PROFESORES, $profes);
         }
         $hay = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lc_horario");
         if ($hay === 0) {
-            self::importar(file_get_contents(LC_PATH . 'data/horario.csv'));
+            self::importar(file_get_contents(self::archivo_datos('horario.csv')));
         }
     }
 
