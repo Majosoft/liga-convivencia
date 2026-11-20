@@ -1,6 +1,11 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+/**
+ * Login en dos pasos (ver LC_Auth::solicitar_codigo()):
+ *   POST /auth/login  {email}          -> envía un código al email si tiene acceso
+ *   POST /auth/verify {email, codigo}  -> canjea el código por la cookie de sesión
+ */
 class LC_REST_Auth {
   public static function register(){
     register_rest_route('liga-creus/v1','/auth/login',[
@@ -9,23 +14,49 @@ class LC_REST_Auth {
         'email'=>['required'=>true,'type'=>'string'],
       ]
     ]);
+    register_rest_route('liga-creus/v1','/auth/verify',[
+      'methods'=>'POST','callback'=>[__CLASS__,'verify'],'permission_callback'=>'__return_true',
+      'args'=>[
+        'email'=>['required'=>true,'type'=>'string'],
+        'codigo'=>['required'=>true,'type'=>'string'],
+      ]
+    ]);
     register_rest_route('liga-creus/v1','/auth/me',[
       'methods'=>'GET','callback'=>[__CLASS__,'me'],'permission_callback'=>'__return_true',
     ]);
     register_rest_route('liga-creus/v1','/auth/logout',[
       'methods'=>'POST','callback'=>[__CLASS__,'logout'],'permission_callback'=>'__return_true',
     ]);
-    register_rest_route('liga-creus/v1','/test',[
-      'methods'=>'GET','callback'=>[__CLASS__,'test'],'permission_callback'=>'__return_true',
-    ]);
+  }
+
+  // Comprobaciones comunes a login y verify: HTTPS y límite por IP.
+  private static function bloqueo(){
+    if (LC_Auth::https_requerido()) {
+      return new \WP_REST_Response(['ok'=>false,'error'=>'El acceso requiere una conexión segura (HTTPS).'],403);
+    }
+    if (!LC_Auth::ip_permitida()) {
+      return new \WP_REST_Response(['ok'=>false,'error'=>'Demasiados intentos. Espera unos minutos y vuelve a probar.'],429);
+    }
+    return null;
   }
 
   public static function login(\WP_REST_Request $req){
+    if ($b = self::bloqueo()) return $b;
     $email = sanitize_email($req->get_param('email'));
     if (!$email || !is_email($email)) return new \WP_REST_Response(['ok'=>false,'error'=>'Email no válido'],400);
-    if (!LC_Auth::is_authorized($email)) return new \WP_REST_Response(['ok'=>false,'error'=>'Este email no está autorizado'],403);
-    $tok = LC_Auth::mint_token($email);
-    return ['ok'=>true,'token'=>$tok,'email'=>$email];
+    LC_Auth::solicitar_codigo($email);
+    // Misma respuesta tenga o no acceso: no se revela quién está autorizado.
+    return ['ok'=>true,'mensaje'=>'Si ese email tiene acceso, te acabamos de enviar un código. Revisa también la carpeta de spam.'];
+  }
+
+  public static function verify(\WP_REST_Request $req){
+    if ($b = self::bloqueo()) return $b;
+    $email = sanitize_email($req->get_param('email'));
+    if (!LC_Auth::verificar_codigo($email, $req->get_param('codigo'))) {
+      return new \WP_REST_Response(['ok'=>false,'error'=>'Código incorrecto o caducado.'],403);
+    }
+    LC_Auth::mint_token($email);
+    return ['ok'=>true];
   }
 
   public static function me(\WP_REST_Request $req){
@@ -42,11 +73,10 @@ class LC_REST_Auth {
   }
 
   public static function logout(\WP_REST_Request $req){
+    // Invalida también el token en sí (no solo la cookie de este navegador).
+    $pl = LC_Auth::parse_token(LC_Auth::extract_token($req));
+    if ($pl) LC_Auth::revocar_sesiones($pl['e']);
     LC_Auth::clear_cookie();
     return ['ok'=>true];
-  }
-
-  public static function test(\WP_REST_Request $req){
-    return ['ok'=>true, 'message'=>'API funcionando', 'timestamp'=>current_time('mysql')];
   }
 }

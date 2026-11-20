@@ -13,8 +13,8 @@ function lcActividadConfig(value){
 }
 
 function uiBiblioteca(){
-  const claseOptions = lcClases().map(c => `<option>${c}</option>`).join('');
-  const actividadOptions = lcActividadesList().map(a => `<option value="${a.value}">${a.label}</option>`).join('');
+  const claseOptions = lcClases().map(c => `<option>${lcEscapar(c)}</option>`).join('');
+  const actividadOptions = lcActividadesList().map(a => `<option value="${lcEscapar(a.value)}">${lcEscapar(a.label)}</option>`).join('');
   return `
     <div>
       <h4 class="lc-module-title">Biblioteca – registro de actividades</h4>
@@ -190,7 +190,7 @@ function bindBiblioteca(container, ctx){
 
   function renderValoracionOptions(){
     const niveles = lcActividadConfig(actividad.value)?.niveles || [];
-    valoracion.innerHTML = niveles.map(n => `<option value="${n.puntos}">${n.label} (${n.puntos} puntos)</option>`).join('');
+    valoracion.innerHTML = niveles.map(n => `<option value="${n.puntos}">${lcEscapar(n.label)} (${n.puntos} puntos)</option>`).join('');
   }
 
   async function syncAlumnos(){
@@ -229,15 +229,15 @@ function bindBiblioteca(container, ctx){
       // En modo por alumnos se muestra quién jugó, que es el dato que distingue
       // una partida de otra entre las mismas dos clases.
       const quien = (r, lado) => isAlumnos
-        ? `${r['alumno_' + lado + '_nombre'] || '—'} <span class="lc-meta">(${r['clase_' + lado]})</span>`
-        : r['clase_' + lado];
+        ? `${lcEscapar(r['alumno_' + lado + '_nombre'] || '—')} <span class="lc-meta">(${lcEscapar(r['clase_' + lado])})</span>`
+        : lcEscapar(r['clase_' + lado]);
       const rowsHtml = currentRows.map(r => `
         <tr>
           <td>${quien(r, 'a')}</td>
           <td style="text-align:center">vs</td>
           <td>${quien(r, 'b')}</td>
-          <td>${ganadorLabel[r.ganador] || r.ganador}</td>
-          <td>${r.notas ? r.notas : ''}</td>
+          <td>${lcEscapar(ganadorLabel[r.ganador] || r.ganador)}</td>
+          <td>${lcEscapar(r.notas)}</td>
           <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button></td>
         </tr>`).join('');
       list.innerHTML = `
@@ -257,10 +257,10 @@ function bindBiblioteca(container, ctx){
 
         return `
           <tr>
-            <td>${r.actividad}</td>
-            <td>${participantesText}</td>
+            <td>${lcEscapar(r.actividad)}</td>
+            <td>${lcEscapar(participantesText)}</td>
             <td style="text-align:center">${r.puntos}</td>
-            <td>${r.notas ? r.notas : ''}</td>
+            <td>${lcEscapar(r.notas)}</td>
             <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button></td>
           </tr>`;
       }).join('');

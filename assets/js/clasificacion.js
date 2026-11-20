@@ -74,7 +74,7 @@
         const trimestreSel = document.getElementById('lc-periodo-trimestre');
         if (!trimestreSel) return;
         const lista = trimestres || [];
-        trimestreSel.innerHTML = lista.map(t => `<option value="${t.label}">${t.label}</option>`).join('');
+        trimestreSel.innerHTML = lista.map(t => `<option value="${lcEscapar(t.label)}">${lcEscapar(t.label)}</option>`).join('');
         // Solo se da por poblado si realmente hay opciones: si la respuesta viene
         // vacía, una carga posterior debe poder volver a intentarlo.
         trimestresPoblados = lista.length > 0;
@@ -88,7 +88,7 @@
         const temporadaSel = document.getElementById('lc-periodo-temporada');
         if (!temporadaSel) return;
         const cerradas = (temporadas || []).filter(t => t.fin);
-        temporadaSel.innerHTML = cerradas.map(t => `<option value="${t.label}">${t.label}</option>`).join('');
+        temporadaSel.innerHTML = cerradas.map(t => `<option value="${lcEscapar(t.label)}">${lcEscapar(t.label)}</option>`).join('');
         temporadasPoblados = cerradas.length > 0;
     }
 
@@ -238,8 +238,8 @@
 
     // Imagen del escudo + nombre de la clase, usado en todas las tablas de clasificación.
     function claseCell(clase, escudoUrl) {
-        const img = escudoUrl ? `<img class="lc-escudo" src="${escudoUrl}" alt="" loading="lazy">` : '';
-        return `<span class="lc-clase-cell">${img}<span>${clase}</span></span>`;
+        const img = escudoUrl ? `<img class="lc-escudo" src="${lcEscapar(escudoUrl)}" alt="" loading="lazy">` : '';
+        return `<span class="lc-clase-cell">${img}<span>${lcEscapar(clase)}</span></span>`;
     }
 
     function renderRankingTable(ranking) {
@@ -264,7 +264,7 @@
         if (!tabsEl || !panelsEl || !items.length) return;
 
         tabsEl.innerHTML = items.map((it, i) => `
-            <button class="lc-tab${i === 0 ? ' active' : ''}" data-subtab="${idPrefix}-${it.value}" role="tab" aria-selected="${i === 0}">${it.label}</button>
+            <button class="lc-tab${i === 0 ? ' active' : ''}" data-subtab="${idPrefix}-${it.value}" role="tab" aria-selected="${i === 0}">${lcEscapar(it.label)}</button>
         `).join('');
 
         panelsEl.innerHTML = items.map((it, i) => `
@@ -302,8 +302,8 @@
         tbody.innerHTML = alumnosData.map((a, index) => `
             <tr>
                 <td>${index + 1}</td>
-                <td>${a.nombre}</td>
-                <td>${a.clase}</td>
+                <td>${lcEscapar(a.nombre)}</td>
+                <td>${lcEscapar(a.clase)}</td>
                 <td class="lc-total">${a.puntos}</td>
             </tr>
         `).join('');

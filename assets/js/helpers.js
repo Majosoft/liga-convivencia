@@ -1,5 +1,13 @@
 // Helpers para manejo de semanas y fechas
 
+// Escapa texto para meterlo en HTML (contenido o atributo). Todo lo que venga
+// del servidor o lo escriba alguien (nombres, notas, emails...) pasa por aquí
+// antes de ir a innerHTML: el servidor quita etiquetas, pero no comillas.
+function lcEscapar(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+
 // Clases/grupos de la competición. Configurables desde Ajustes > Liga Convivencia > Clases;
 // llega vía window.LC_SETTINGS.clases (no se puede leer como const a nivel de módulo
 // porque ese script se inyecta justo antes de app.js, después de que este archivo
@@ -205,7 +213,7 @@ function createParticipantList({ container, classes, initial = [], onChange, ext
   let participantes = initial.slice();
 
   function optionsHtml(selected){
-    return classes.map(c => `<option value="${c}" ${c === selected ? 'selected' : ''}>${c}</option>`).join('');
+    return classes.map(c => `<option value="${lcEscapar(c)}" ${c === selected ? 'selected' : ''}>${lcEscapar(c)}</option>`).join('');
   }
 
   function render(){
@@ -218,9 +226,9 @@ function createParticipantList({ container, classes, initial = [], onChange, ext
       <div class="lc-participant-row" data-index="${i}">
         <select class="lc-participant-clase" aria-label="Clase del participante">${optionsHtml(p.clase)}</select>
         <input type="text" class="lc-participant-nombre" placeholder="Nombre del participante"
-               value="${p.nombre || ''}" aria-label="Nombre del participante"/>
+               value="${lcEscapar(p.nombre)}" aria-label="Nombre del participante"/>
         ${extraField ? `<input type="number" step="any" class="lc-participant-extra" placeholder="${extraField.label}"
-               value="${p[extraField.name] ?? ''}" aria-label="${extraField.label}"/>` : ''}
+               value="${lcEscapar(p[extraField.name])}" aria-label="${extraField.label}"/>` : ''}
         <button type="button" class="lc-btn lc-btn-icon lc-btn-secondary lc-participant-remove" aria-label="Quitar participante">×</button>
       </div>
     `).join('');
@@ -316,13 +324,13 @@ function bindAlumnoPicker(root, { onChange, opcional } = {}){
     try {
       const res = await window.LC_get(window.LC_EP + '/alumnos?' + new URLSearchParams({ clase }));
       const alumnos = (res && res.ok && res.alumnos) ? res.alumnos : [];
-      const opciones = alumnos.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+      const opciones = alumnos.map(a => `<option value="${lcEscapar(a.id)}">${lcEscapar(a.nombre)}</option>`).join('');
       if (opcional){
         select.innerHTML = `<option value="">${opcional}</option>` + opciones;
       } else {
         select.innerHTML = alumnos.length
           ? opciones
-          : `<option value="">— Ningún alumno en ${clase} —</option>`;
+          : `<option value="">— Ningún alumno en ${lcEscapar(clase)} —</option>`;
       }
       if (seleccionado && alumnos.some(a => String(a.id) === String(seleccionado))){
         select.value = String(seleccionado);
@@ -422,7 +430,7 @@ function renderRankingAlumnos(ranking){
     return '<div class="lc-meta">Sin datos todavía.</div>';
   }
   const rows = ranking.map((r, i) =>
-    `<tr><td>${i + 1}</td><td>${r.nombre}</td><td>${r.clase}</td><td>${r.puntos}</td></tr>`
+    `<tr><td>${i + 1}</td><td>${lcEscapar(r.nombre)}</td><td>${lcEscapar(r.clase)}</td><td>${r.puntos}</td></tr>`
   ).join('');
   return `
     <div class="lc-table-container">
@@ -478,8 +486,8 @@ function renderRankingTable(ranking){
     return '<div class="lc-meta">Sin datos todavía.</div>';
   }
   const rows = ranking.map((r, i) => {
-    const img = r.escudo_url ? `<img class="lc-escudo" src="${r.escudo_url}" alt="" loading="lazy">` : '';
-    return `<tr><td>${i + 1}</td><td><span class="lc-clase-cell">${img}<span>${r.clase}</span></span></td><td>${r.puntos}</td></tr>`;
+    const img = r.escudo_url ? `<img class="lc-escudo" src="${lcEscapar(r.escudo_url)}" alt="" loading="lazy">` : '';
+    return `<tr><td>${i + 1}</td><td><span class="lc-clase-cell">${img}<span>${lcEscapar(r.clase)}</span></span></td><td>${r.puntos}</td></tr>`;
   }).join('');
   return `
     <div class="lc-table-container">

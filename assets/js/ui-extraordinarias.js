@@ -87,7 +87,7 @@ function bindExtraordinarias(container, ctx){
 
   function addClaseRow(claseVal, puntosVal){
     const claseOptions = lcClases().map(c =>
-      `<option${c === claseVal ? ' selected' : ''}>${c}</option>`
+      `<option${c === claseVal ? ' selected' : ''}>${lcEscapar(c)}</option>`
     ).join('');
 
     const row = document.createElement('div');
@@ -155,13 +155,13 @@ function bindExtraordinarias(container, ctx){
 
     const rowsHtml = currentActividades.map(act => {
       const clasesText = (act.clases || [])
-        .map(c => `${c.clase} (${c.puntos} pts)`)
+        .map(c => `${lcEscapar(c.clase)} (${c.puntos} pts)`)
         .join(', ');
       return `
         <tr>
-          <td><strong>${act.nombre}</strong></td>
+          <td><strong>${lcEscapar(act.nombre)}</strong></td>
           <td>${clasesText}</td>
-          <td>${act.notas || ''}</td>
+          <td>${lcEscapar(act.notas)}</td>
           <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-nombre="${encodeURIComponent(act.nombre)}">Editar</button></td>
         </tr>`;
     }).join('');

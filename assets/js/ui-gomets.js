@@ -30,10 +30,6 @@ function lcMoverLectivo(d, paso){
   return r;
 }
 
-function lcEscapar(s){
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-}
-
 function uiGomets(){
   return `
     <div>

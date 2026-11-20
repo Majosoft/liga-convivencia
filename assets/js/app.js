@@ -1,6 +1,8 @@
 // Variables globales
 window.LC_EP = (window.LC_SETTINGS && LC_SETTINGS.endpoint) || (window.wpApiSettings && wpApiSettings.root + 'liga-creus/v1');
 window.LC_NONCE = (window.LC_SETTINGS && LC_SETTINGS.nonce) || '';
+// Versiones anteriores guardaban el token aquí; ahora solo va en cookie HttpOnly.
+try { localStorage.removeItem('lc_token'); } catch(e){}
 
 // Sesión caducada (el token dura un día) o usuario dado de baja: WordPress
 // responde rest_forbidden. Sin esto el panel seguía abierto mostrando los
@@ -70,7 +72,6 @@ window.LC_get = async function(url){
         root.innerHTML = uiSinClases(me.email);
         root.querySelector('#lc-logout').addEventListener('click', async ()=>{
           await window.LC_post(EP + '/auth/logout', {});
-          try { localStorage.removeItem('lc_token'); } catch(e){}
           await render(root);
         });
       } else if (me && me.ok) {
@@ -103,7 +104,7 @@ window.LC_get = async function(url){
     return `
       <div class="lc-card">
         <div class="lc-toolbar lc-shell-header">
-          <div class="lc-meta">Sesión: <strong>${email}</strong></div>
+          <div class="lc-meta">Sesión: <strong>${lcEscapar(email)}</strong></div>
           <button class="lc-btn lc-btn-secondary" id="lc-logout" type="button">Cerrar sesión</button>
         </div>
         <p>Este email no está en el horario del profesorado, así que no tiene clases en las que poner gomets.
@@ -115,21 +116,39 @@ window.LC_get = async function(url){
     return `
       <div class="lc-card lc-login-card">
         <h3 class="lc-title">Acceso para profesorado</h3>
-        <div class="lc-field">
-          <label for="lc-email">Correo electrónico</label>
-          <input type="email" id="lc-email" placeholder="tu@correo.edu" autocomplete="email"/>
+        <div id="lc-paso-email">
+          <div class="lc-field">
+            <label for="lc-email">Correo electrónico</label>
+            <input type="email" id="lc-email" placeholder="tu@correo.edu" autocomplete="email"/>
+          </div>
+          <button class="lc-btn lc-btn-primary lc-btn-block" id="lc-go" type="button">Enviarme un código</button>
         </div>
-        <button class="lc-btn lc-btn-primary lc-btn-block" id="lc-go" type="button">Entrar</button>
+        <div id="lc-paso-codigo" style="display:none">
+          <p id="lc-aviso" class="lc-meta"></p>
+          <div class="lc-field">
+            <label for="lc-codigo">Código de 6 dígitos</label>
+            <input type="text" id="lc-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*"/>
+          </div>
+          <button class="lc-btn lc-btn-primary lc-btn-block" id="lc-verify" type="button">Entrar</button>
+          <button class="lc-btn lc-btn-secondary lc-btn-block" id="lc-otro" type="button" style="margin-top:8px">Usar otro email</button>
+        </div>
         <div id="lc-error" class="lc-alert lc-alert-danger" style="display:none; margin-top:12px" aria-live="polite"></div>
-        <p class="lc-meta">* Solo los emails dados de alta por el administrador pueden iniciar sesión.</p>
+        <p class="lc-meta">* Solo los emails dados de alta por el administrador reciben código.</p>
       </div>`;
   }
 
+  // Login en dos pasos: email -> código recibido por correo -> sesión.
+  // La sesión vive solo en una cookie HttpOnly; el navegador no guarda token.
   function bindLogin(root){
+    const pasoEmail = root.querySelector('#lc-paso-email');
+    const pasoCodigo = root.querySelector('#lc-paso-codigo');
     const btn = root.querySelector('#lc-go');
     const inp = root.querySelector('#lc-email');
+    const btnVer = root.querySelector('#lc-verify');
+    const inpCod = root.querySelector('#lc-codigo');
     const err = root.querySelector('#lc-error');
     function showErr(msg){ err.textContent = msg; err.style.display = 'block'; }
+
     btn.addEventListener('click', async ()=>{
       err.style.display = 'none';
       const email = (inp.value||'').trim();
@@ -137,26 +156,49 @@ window.LC_get = async function(url){
       setButtonLoading(btn, true);
       try{
         const res = await window.LC_post(EP + '/auth/login', { email });
-        if(!res.ok){ setButtonLoading(btn, false); return showErr(res.error || 'No autorizado'); }
-        try { localStorage.setItem('lc_token', res.token); } catch(e){}
-        await render(root);
+        setButtonLoading(btn, false);
+        root.querySelector('#lc-aviso').textContent = res.mensaje || 'Revisa tu correo.';
+        pasoEmail.style.display = 'none';
+        pasoCodigo.style.display = '';
+        inpCod.focus();
       } catch(e){
-        // LC_post lanza también en 400/403 con el mensaje del servidor
-        // ("Este email no está autorizado"): hay que enseñarlo, no tapar todo
-        // con un error de conexión.
         setButtonLoading(btn, false);
         showErr(e.message || 'Error de conexión. Inténtalo de nuevo.');
       }
     });
+
+    btnVer.addEventListener('click', async ()=>{
+      err.style.display = 'none';
+      const codigo = (inpCod.value||'').replace(/\D/g, '');
+      if(codigo.length !== 6){ return showErr('El código tiene 6 dígitos.'); }
+      setButtonLoading(btnVer, true);
+      try{
+        await window.LC_post(EP + '/auth/verify', { email: (inp.value||'').trim(), codigo });
+        await render(root);
+      } catch(e){
+        setButtonLoading(btnVer, false);
+        showErr(e.message || 'Error de conexión. Inténtalo de nuevo.');
+      }
+    });
+
+    root.querySelector('#lc-otro').addEventListener('click', ()=>{
+      err.style.display = 'none';
+      inpCod.value = '';
+      pasoCodigo.style.display = 'none';
+      pasoEmail.style.display = '';
+      inp.focus();
+    });
+
     inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ btn.click(); } });
+    inpCod.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ btnVer.click(); } });
   }
 
   function uiShell(email){
-    const claseOptions = lcClases().map(c => `<option value="${c}">${c}</option>`).join('');
+    const claseOptions = lcClases().map(c => `<option value="${lcEscapar(c)}">${lcEscapar(c)}</option>`).join('');
     return `
       <div class="lc-card">
         <div class="lc-toolbar lc-shell-header">
-          <div class="lc-meta">Sesión: <strong>${email}</strong></div>
+          <div class="lc-meta">Sesión: <strong>${lcEscapar(email)}</strong></div>
           <button class="lc-btn lc-btn-secondary" id="lc-logout" type="button">Cerrar sesión</button>
         </div>
 
@@ -255,7 +297,6 @@ window.LC_get = async function(url){
     logoutBtn.addEventListener('click', async ()=>{
       if (!confirmDiscardIfDirty()) return;
       await window.LC_post(EP + '/auth/logout', {});
-      try { localStorage.removeItem('lc_token'); } catch(e){}
       await render(root);
     });
 

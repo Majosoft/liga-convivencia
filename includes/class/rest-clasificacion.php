@@ -547,8 +547,10 @@ class LC_REST_Clasificacion {
             $alumno_id = (int) $row['alumno_id'];
             if ($alumno_id) {
                 $suma = $n * (int) $pts_partes_cfg[$tipo];
+                // Los partes NO entran en el ranking global de alumnos: ese ranking
+                // es público y un parte (dato de conducta de un menor) no puede
+                // deducirse desde fuera. Solo van al de partes, que exige sesión.
                 $puntos_alumno_partes[$alumno_id] = ($puntos_alumno_partes[$alumno_id] ?? 0) + $suma;
-                $puntos_alumno_global[$alumno_id] = ($puntos_alumno_global[$alumno_id] ?? 0) + $suma;
             }
         }
 
@@ -683,13 +685,20 @@ class LC_REST_Clasificacion {
 
         uasort($totales, function($a, $b) { return $b['total'] <=> $a['total']; });
 
-        return [
+        $con_partes = LC_Auth::only_allowed($req);
+        $res = new \WP_REST_Response([
             'ok' => true,
             'periodo' => $periodo,
             // Mensual: primer lunes y último viernes de las semanas que cuenta ese mes.
             'semanas_mes' => $range['semanas'] ?? null,
-            'alumnos' => self::ranking_alumnos($puntos_alumno_global, $alumnos_map),
-            'alumnos_partes' => self::ranking_alumnos($puntos_alumno_partes, $alumnos_map),
+            // Público: solo méritos (deportes, biblioteca, extraordinarias) y solo
+            // quien suma; nunca puntos negativos junto a un nombre.
+            'alumnos' => array_values(array_filter(
+                self::ranking_alumnos($puntos_alumno_global, $alumnos_map),
+                function($a) { return $a['puntos'] > 0; }
+            )),
+            // Partes por alumno: solo para el profesorado con acceso completo.
+            'alumnos_partes' => $con_partes ? self::ranking_alumnos($puntos_alumno_partes, $alumnos_map) : [],
             'trimestres' => self::trimestres_visibles(),
             'temporadas' => LC_Competiciones::get_temporadas(),
             'temporada_activa' => LC_Competiciones::get_temporada_activa(),
@@ -697,6 +706,10 @@ class LC_REST_Clasificacion {
             'por_deporte' => $por_deporte,
             'por_actividad' => $por_actividad,
             'timestamp' => current_time('mysql'),
-        ];
+        ]);
+        // Con datos de partes la respuesta es personal: que ninguna caché del
+        // hosting la guarde y se la sirva luego a un visitante anónimo.
+        if ($con_partes) $res->header('Cache-Control', 'private, no-store');
+        return $res;
     }
 }

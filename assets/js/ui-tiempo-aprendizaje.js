@@ -4,7 +4,7 @@
 // Los datos se almacenan en lc_tiempo_aprendizaje (1 fila por clase + mes).
 
 function uiTiempoAprendizaje(){
-  const claseOptions = lcClases().map(c => `<option>${c}</option>`).join('');
+  const claseOptions = lcClases().map(c => `<option>${lcEscapar(c)}</option>`).join('');
   const meses = seasonMonthsFor(new Date());
   const mesOptions = meses.map(m => `<option value="${m.value}">${m.label}</option>`).join('');
 

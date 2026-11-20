@@ -112,10 +112,10 @@ function bindPartes(container, ctx){
     const etiqueta = Object.fromEntries(PT_TIPOS.map(t => [t.value, `${t.icono} ${t.label}`]));
     const rows = partes.map(p => `
       <tr>
-        <td>${p.alumno}</td>
+        <td>${lcEscapar(p.alumno)}</td>
         <td>${etiqueta[p.tipo] || p.tipo}</td>
         <td>${p.puntos}</td>
-        <td>${p.notas || ''}</td>
+        <td>${lcEscapar(p.notas)}</td>
         <td><button type="button" class="lc-btn lc-btn-secondary lc-btn-xs lc-parte-borrar" data-id="${p.id}">Borrar</button></td>
       </tr>`).join('');
 

@@ -324,6 +324,7 @@ class LC_Admin {
         $notices = [
             'creado' => 'Usuario creado correctamente.',
             'eliminado' => 'Usuario eliminado correctamente.',
+            'email_ok' => 'WordPress ha aceptado el email de prueba. Comprueba que ha llegado (y que no está en spam).',
         ];
         $msg = sanitize_key($_GET['lc_msg'] ?? '');
         if (isset($notices[$msg])) {
@@ -339,9 +340,17 @@ class LC_Admin {
             . '(Deportes, Partes, Biblioteca, Extraordinarias, el Semáforo semanal...). Para quien solo tiene que poner gomets en sus clases está la '
             . '<a href="' . esc_url(admin_url('admin.php?page=liga-creus-acceso&tab=profesores')) . '">Lista Semáforo</a>.</p>';
         echo '<p>'
-            . 'Cada una entra solo con su email, sin contraseña ni PIN: <strong>basta con conocer un email de esta lista para acceder al panel</strong>, '
-            . 'así que conviene mantenerla corta y dar de baja a quien deje de necesitar acceso. '
-            . 'Eliminar a un usuario le bloquea el acceso de inmediato, aunque tuviera una sesión abierta en ese momento.</p>';
+            . 'Para entrar, cada persona escribe su email y recibe en él un <strong>código de 6 dígitos</strong> que caduca en 10 minutos: '
+            . 'conocer un email de la lista no basta. Eliminar a un usuario le bloquea el acceso de inmediato, aunque tuviera una sesión abierta.</p>';
+
+        // Sin correo no hay login: botón para comprobar que WordPress envía emails.
+        $admin_email = wp_get_current_user()->user_email;
+        echo '<form method="post" action="' . esc_url(admin_url('admin.php')) . '" style="margin:12px 0">';
+        wp_nonce_field('lc_usuario_action');
+        echo '<input type="hidden" name="lc_action" value="email_prueba" />';
+        echo '<button type="submit" class="button">Enviar email de prueba a ' . esc_html($admin_email) . '</button> ';
+        echo '<span class="description">Los códigos de acceso llegan por email: si este no llega, configura el envío de correo (p. ej. con el plugin WP Mail SMTP).</span>';
+        echo '</form>';
 
         $usuarios = LC_Auth::get_users();
         echo '<table class="widefat lc-admin-table"><thead><tr>'
@@ -397,11 +406,19 @@ class LC_Admin {
     // en vez de la Settings API.
     public static function maybe_handle_usuario_action() {
         $action = $_POST['lc_action'] ?? '';
-        if (!in_array($action, ['usuario_add', 'usuario_delete'], true)) return;
+        if (!in_array($action, ['usuario_add', 'usuario_delete', 'email_prueba'], true)) return;
         if (!current_user_can('manage_options')) return;
         check_admin_referer('lc_usuario_action');
 
         $back = admin_url('admin.php?page=liga-creus-acceso&tab=usuarios');
+
+        if ($action === 'email_prueba') {
+            $ok = wp_mail(wp_get_current_user()->user_email, 'Liga Convivencia: email de prueba',
+                "Si lees esto, WordPress envía correos y el profesorado recibirá sus códigos de acceso.");
+            wp_safe_redirect(add_query_arg($ok ? ['lc_msg' => 'email_ok']
+                : ['lc_error' => 'WordPress no ha podido enviar el email. Configura el envío de correo (p. ej. WP Mail SMTP).'], $back));
+            exit;
+        }
         $email = sanitize_text_field($_POST['usuario_email'] ?? '');
 
         if ($action === 'usuario_add') {

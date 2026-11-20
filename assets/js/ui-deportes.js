@@ -13,8 +13,8 @@ function lcDeporteConfig(value){
 }
 
 function uiDeportes(){
-  const teamOptions = lcClases().map(c => `<option>${c}</option>`).join('');
-  const sportOptions = lcDeportesList().map(d => `<option value="${d.value}">${d.label}</option>`).join('');
+  const teamOptions = lcClases().map(c => `<option>${lcEscapar(c)}</option>`).join('');
+  const sportOptions = lcDeportesList().map(d => `<option value="${lcEscapar(d.value)}">${lcEscapar(d.label)}</option>`).join('');
   return `
     <div>
       <h4 class="lc-module-title">Deportes – registro de partidos</h4>
@@ -228,8 +228,8 @@ function bindDeportes(container, ctx){
       participantes = participantes.slice().sort((x,y) => (y.puntos||0) - (x.puntos||0));
       const rowsHtml = participantes.map(p => `
         <tr>
-          <td>${p.clase}</td>
-          <td>${p.nombre}</td>
+          <td>${lcEscapar(p.clase)}</td>
+          <td>${lcEscapar(p.nombre)}</td>
           <td style="text-align:center">${p.marca}</td>
           <td style="text-align:center">${p.puntos}</td>
         </tr>`).join('');
@@ -258,12 +258,12 @@ function bindDeportes(container, ctx){
         : participantesText;
       return `
         <tr>
-          <td>${r.equipo_a}</td>
+          <td>${lcEscapar(r.equipo_a)}</td>
           <td style="text-align:center">${r.marcador_a} – ${r.marcador_b}</td>
-          <td>${r.equipo_b}</td>
+          <td>${lcEscapar(r.equipo_b)}</td>
           <td style="text-align:center">${r.pts_a} / ${r.pts_b}</td>
-          <td>${quien}</td>
-          <td>${r.notas ? r.notas : ''}</td>
+          <td>${lcEscapar(quien)}</td>
+          <td>${lcEscapar(r.notas)}</td>
           <td><button type="button" class="lc-btn lc-btn-secondary lc-edit-row-btn lc-btn-xs" data-row-id="${r.id}">Editar</button></td>
         </tr>`;
     }).join('');

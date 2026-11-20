@@ -52,10 +52,8 @@ class LC_Auth {
     }
 
     /**
-     * El acceso lo concede estar en la lista de emails autorizados: no hay
-     * segundo factor. Cualquiera que conozca uno de esos emails puede entrar,
-     * así que la lista es la única barrera -- conviene mantenerla corta y dar de
-     * baja a quien deje de necesitar acceso.
+     * Estar en una de las listas permite PEDIR un código; la sesión solo se
+     * concede a quien demuestra que lee ese buzón (ver solicitar_codigo()).
      */
     public static function is_authorized($email) {
         return self::rol($email) !== null;
@@ -90,12 +88,131 @@ class LC_Auth {
         return $email !== '' && LC_Horario::profesor_por_email($email) !== null;
     }
 
+    // ------------------------------------------------------------------
+    // Código de acceso de un solo uso, enviado por email.
+    //
+    // Antes bastaba con escribir un email autorizado para entrar, y los emails
+    // del profesorado son fáciles de adivinar. Ahora el login va en dos pasos:
+    // se pide un código (llega al buzón) y se canjea por la sesión.
+    // - La respuesta al pedirlo es la misma exista o no el email: la API no
+    //   sirve para averiguar quién tiene acceso.
+    // - Se guarda solo el HMAC del código, caduca en 10 minutos, admite 5
+    //   intentos y no se reenvía más de una vez por minuto.
+    // - Límite por IP para pedir y canjear códigos (fuerza bruta).
+    // ------------------------------------------------------------------
+    const CODIGO_TTL = 10 * MINUTE_IN_SECONDS;
+    const CODIGO_INTENTOS = 5;
+    const IP_MAX = 20;                         // peticiones de login por IP...
+    const IP_VENTANA = 15 * MINUTE_IN_SECONDS; // ...en esta ventana
+
+    private static function clave_codigo($email) {
+        return 'lc_otp_' . md5(strtolower($email));
+    }
+
+    private static function hash_codigo($email, $codigo) {
+        return hash_hmac('sha256', strtolower($email) . '|' . $codigo, wp_salt('auth'));
+    }
+
     /**
-     * Genera un token JWT para el email dado
+     * Cuenta una petición de login desde la IP actual. Devuelve false si ya
+     * ha superado el límite de la ventana.
+     */
+    public static function ip_permitida() {
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+        $clave = 'lc_rl_' . md5($ip);
+        $n = (int) get_transient($clave);
+        if ($n >= self::IP_MAX) return false;
+        set_transient($clave, $n + 1, self::IP_VENTANA);
+        return true;
+    }
+
+    /**
+     * Si el email tiene acceso, genera un código y lo envía. No dice nada
+     * hacia fuera sobre si el email existe.
+     */
+    public static function solicitar_codigo($email) {
+        $email = strtolower(sanitize_email($email));
+        if (!$email || !self::is_authorized($email)) return;
+
+        $clave = self::clave_codigo($email);
+        $previo = get_transient($clave);
+        if (is_array($previo) && ($previo['enviado'] ?? 0) > time() - MINUTE_IN_SECONDS) return;
+
+        $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        set_transient($clave, [
+            'h'        => self::hash_codigo($email, $codigo),
+            'exp'      => time() + self::CODIGO_TTL,
+            'intentos' => 0,
+            'enviado'  => time(),
+        ], self::CODIGO_TTL);
+
+        $sitio = wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES);
+        $ok = wp_mail(
+            $email,
+            "Tu código de acceso: {$codigo}",
+            "Tu código para entrar en la Liga Convivencia ({$sitio}) es:\n\n"
+            . "    {$codigo}\n\n"
+            . "Caduca en 10 minutos. Si no lo has pedido tú, ignora este mensaje: nadie puede entrar sin él."
+        );
+        if (!$ok) error_log('[Liga Convivencia] No se pudo enviar el código de acceso (wp_mail falló).');
+    }
+
+    /** Canjea el código por una sesión. Devuelve true si es válido. */
+    public static function verificar_codigo($email, $codigo) {
+        $email = strtolower(sanitize_email($email));
+        $codigo = preg_replace('/\D/', '', (string) $codigo);
+        if (!$email || strlen($codigo) !== 6) return false;
+
+        $clave = self::clave_codigo($email);
+        $d = get_transient($clave);
+        if (!is_array($d) || ($d['exp'] ?? 0) < time()) return false;
+
+        if (!hash_equals($d['h'], self::hash_codigo($email, $codigo))) {
+            $d['intentos'] = (int) $d['intentos'] + 1;
+            if ($d['intentos'] >= self::CODIGO_INTENTOS) delete_transient($clave);
+            else set_transient($clave, $d, max(1, $d['exp'] - time()));
+            return false;
+        }
+        delete_transient($clave);
+        // Se comprueba otra vez: pudieron darle de baja mientras tanto.
+        return self::is_authorized($email);
+    }
+
+    /**
+     * Fuera de un entorno local, sin HTTPS no se inicia sesión: el código y
+     * la cookie viajarían en claro.
+     */
+    public static function https_requerido() {
+        return !is_ssl() && !in_array(wp_get_environment_type(), ['local', 'development'], true);
+    }
+
+    // ------------------------------------------------------------------
+    // Versión de sesión por email: va dentro del token y cerrar sesión la
+    // incrementa, así que un token copiado deja de valer al hacer logout
+    // (en todos los dispositivos de esa persona).
+    // ------------------------------------------------------------------
+    const OPT_SESIONES = 'lc_sesiones';
+
+    private static function version_sesion($email) {
+        $v = get_option(self::OPT_SESIONES, []);
+        return (int) ($v[strtolower($email)] ?? 0);
+    }
+
+    public static function revocar_sesiones($email) {
+        $email = strtolower($email);
+        $v = get_option(self::OPT_SESIONES, []);
+        if (!is_array($v)) $v = [];
+        $v[$email] = (int) ($v[$email] ?? 0) + 1;
+        update_option(self::OPT_SESIONES, $v, false);
+    }
+
+    /**
+     * Genera el token de sesión firmado (HMAC) y lo escribe en la cookie.
      */
     public static function mint_token($email) {
         $now = time();
-        $payload = [ 'e' => strtolower(sanitize_email($email)), 't' => $now ];
+        $email = strtolower(sanitize_email($email));
+        $payload = [ 'e' => $email, 't' => $now, 'v' => self::version_sesion($email) ];
         $data = wp_json_encode($payload);
         $mac  = hash_hmac('sha256', $data, wp_salt('auth'));
         $tok  = rtrim(strtr(base64_encode($data.'|'.$mac), '+/', '-_'), '=');
@@ -144,16 +261,17 @@ class LC_Auth {
         if (!is_array($payload)) return null;
         if (empty($payload['e']) || empty($payload['t'])) return null;
         if ((int)$payload['t'] + self::TOKEN_TTL < time()) return null; // expirado
+        if ((int)($payload['v'] ?? 0) !== self::version_sesion($payload['e'])) return null; // sesión cerrada
         return $payload;
     }
 
     /**
-     * Extrae el token de la request (header Authorization o cookie)
+     * Extrae el token de la request. Solo de la cookie HttpOnly: no se acepta
+     * en cabecera Authorization, para que ningún script de la página pueda
+     * leerlo ni reutilizarlo.
      */
     public static function extract_token(\WP_REST_Request $req) {
-        $hdr = $req->get_header('authorization');
-        if ($hdr && preg_match('/Bearer\s+(.*)/i', $hdr, $m)) { return trim($m[1]); }
-        if (!empty($_COOKIE[self::COOKIE])) return $_COOKIE[self::COOKIE];
+        if (!empty($_COOKIE[self::COOKIE])) return sanitize_text_field(wp_unslash($_COOKIE[self::COOKIE]));
         return null;
     }
 
