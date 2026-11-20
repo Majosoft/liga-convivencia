@@ -13,7 +13,7 @@ jobs:
         # 7.3 es la versión mínima que promete el plugin; 8.4, la actual.
         php: ['7.3', '8.4']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -23,18 +23,18 @@ jobs:
           find liga-creus.php includes demo -name '*.php' -print0 | xargs -0 -n1 php -l | grep -v '^No syntax errors' && exit 1 || true
 
   pruebas:
-    name: Pruebas (PHP 8.4 + Node 20)
+    name: Pruebas (PHP 8.4 + Node 24)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: pdo_sqlite
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Sintaxis JavaScript
         run: for f in assets/js/*.js; do node --check "$f"; done
       - name: Todas las pruebas
