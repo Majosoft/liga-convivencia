@@ -161,7 +161,7 @@ Página **Liga Convivencia → Informes IA**, solo para administradores:
 | App móvil | PWA: manifest + service worker servidos por el propio plugin |
 | Autenticación | Código de un solo uso por email + token HMAC-SHA256 en cookie `HttpOnly` |
 | IA | API de Claude (Anthropic), modelo `claude-opus-5-5`, vía `wp_remote_post` + WP-Cron |
-| Pruebas | PHP CLI con simulación de las funciones de WordPress |
+| Pruebas | PHP CLI + SQLite en memoria, `node:test`, GitHub Actions |
 | Desarrollo | Claude Code (IA), Git/GitHub, Local (WordPress local), Playwright (capturas) |
 
 Sin dependencias de Composer ni npm: el plugin se instala copiando una carpeta.
@@ -312,9 +312,11 @@ assets/
   js/    helpers.js · app.js · ui-*.js (uno por módulo) · clasificacion.js · pwa.js
   img/   Iconos de las dos apps
 tests/
-  auth-test.php                   Pruebas de autenticación (PHP CLI)
-  informes-ia-test.php            Pruebas de los informes de IA (PHP CLI)
-  alumnos-test.php                Pruebas del borrado de alumnos y supresión de datos
+  run-all.sh                      Ejecuta todas las pruebas
+  bootstrap.php                   Simulación de WordPress + SQLite en memoria
+  *-test.php                      Pruebas PHP (clasificación, competiciones, horario, auth…)
+  js/helpers.test.mjs             Pruebas del JavaScript compartido (Node)
+.github/workflows/pruebas.yml     Integración continua
 ```
 
 Convenciones: clases PHP con prefijo `LC_`, CSS con `lc-`, opciones con `lc_`. Cada
@@ -385,24 +387,34 @@ activador migra los esquemas de versiones anteriores y es idempotente.
 
 ## Pruebas
 
+[![Pruebas](https://github.com/Majosoft/liga-convivencia/actions/workflows/pruebas.yml/badge.svg)](https://github.com/Majosoft/liga-convivencia/actions/workflows/pruebas.yml)
+
 ```bash
-php tests/auth-test.php
-php tests/informes-ia-test.php
-php tests/alumnos-test.php
+bash tests/run-all.sh        # todas (PHP 8+ con pdo_sqlite y Node 20+)
+php tests/clasificacion-test.php
+node --test tests/js/*.test.mjs
 ```
 
-- **Autenticación** (20 casos): código de un solo uso, bloqueo tras 5 fallos, límites por email y
-  por IP, rechazo de tokens manipulados o en cabecera, cierre de sesión, bajas de
-  usuario y HTTPS obligatorio.
-- **Informes de IA** (25 casos): periodos con cambio de año ISO, lista blanca de
-  campos enviados, escapado del Markdown del modelo, y la petición a la API
-  (cabeceras, modelo, respaldo, rechazos y errores) con respuestas simuladas.
+**215 pruebas** en 7 archivos, sin WordPress ni dependencias. Las que necesitan base de
+datos usan **SQLite real en memoria** con las mismas tablas del plugin
+([tests/bootstrap.php](tests/bootstrap.php)), así que las consultas SQL se ejecutan de verdad.
 
-- **Alumnado** (11 casos): validación de clase y borrado con supresión de datos
-  personales (notas de partes y nombres en participantes, también con acentos escapados)
-  sin perder los puntos de la clase.
+| Archivo | Casos | Qué comprueba |
+|---|---|---|
+| `clasificacion-test.php` | 42 | Periodos (cada semana en un solo mes durante 24 meses seguidos, trimestres, temporadas); las seis competiciones con datos conocidos y **resultados calculados a mano**; total = suma de columnas; ranking de alumnos solo con méritos; partes por alumno solo con sesión; widget |
+| `competiciones-test.php` | 61 | Reglas de cada competición por su API: Deportes en sus tres modos (orden normalizado, puntos por posición), Biblioteca, Extraordinarias, Partes, Tiempo de Aprendizaje y Alumnos, con validaciones y borrado |
+| `horario-test.php` | 42 | Reparto de sesiones entre clases (optativas, religión, apoyos), gomet de menor valor, validación de fechas, reimportación, acumulado del Semáforo con cascada y recálculo al cambiar puntos |
+| `auth-test.php` | 20 | Código de un solo uso, límites por email y por IP, tokens manipulados, cierre de sesión, bajas, HTTPS y modo demo |
+| `informes-ia-test.php` | 25 | Periodos, lista blanca de datos enviados a la IA, escapado y petición a la API con respuestas simuladas |
+| `alumnos-test.php` | 11 | Borrado con supresión de datos personales sin perder los puntos de la clase |
+| `js/helpers.test.mjs` | 14 | `isoYearWeek` igual que PHP **cada día de 2024 a 2028**; semanas de la temporada; empates; escapado de HTML |
 
-Se ejecutan sin WordPress ni red gracias a una simulación mínima de sus funciones.
+**Integración continua**: [GitHub Actions](.github/workflows/pruebas.yml) comprueba la
+sintaxis con PHP 7.3 (mínimo del plugin) y 8.4 y ejecuta todas las pruebas en cada push.
+
+**¿Detectan errores?** Se comprobó introduciendo fallos a propósito (cambiar la regla del
+gomet de menor valor, quitar la resta del acumulado del Semáforo, dejar de escapar comillas
+y no normalizar el orden de los partidos): cada uno hizo fallar entre 5 y 9 pruebas.
 
 ## Mejoras pendientes
 
@@ -410,4 +422,3 @@ Se ejecutan sin WordPress ni red gracias a una simulación mínima de sus funcio
 
 - Herramienta de borrado de datos de alumnado al cerrar una temporada.
 - Servir las fuentes desde el propio sitio en lugar de Google Fonts (privacidad).
-- Ampliar las pruebas a la lógica de clasificación y del semáforo.

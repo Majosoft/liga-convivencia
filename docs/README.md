@@ -75,4 +75,4 @@ Admin de WordPress                          Base de datos: tablas lc_*
 - CSS: clases `lc-`, colores y espaciados en `assets/css/tokens.css`.
 - Cada archivo empieza con un comentario que dice qué hace y por qué. Los comentarios
   explican decisiones (el *porqué*), no repiten el código.
-- Pruebas en `tests/` (`php tests/<archivo>.php`), sin WordPress.
+- Pruebas en `tests/` (`bash tests/run-all.sh`), sin WordPress: SQLite en memoria para la base de datos y `node:test` para el JavaScript. Se ejecutan en cada push con GitHub Actions.
