@@ -8,7 +8,7 @@ pública muestra en tiempo real qué clase va primera.
 > **Trabajo Fin de Máster** del Máster de Programación con IA. Es un proyecto real:
 > se usa en un instituto durante el curso 2026-27.
 
-- **Versión**: 1.2.1
+- **Versión**: 1.2.2
 - **Requiere**: WordPress 5.8+, PHP 7.3+, HTTPS en producción
 - **Licencia del código**: propiedad del autor (Majosoft)
 
@@ -221,7 +221,7 @@ hizo una auditoría completa con ayuda de IA y se corrigió todo lo encontrado.
 - Login en dos pasos: el email recibe un **código de 6 dígitos** que caduca en
   10 minutos, es de un solo uso y admite 5 intentos. Solo se guarda su HMAC.
 - La respuesta es idéntica exista o no el email: la API no permite averiguar quién
-  tiene acceso. Límite de 20 peticiones de login por IP cada 15 minutos.
+  tiene acceso. Como mucho 5 códigos por email y hora, y un límite por IP holgado (150 peticiones cada 15 minutos), porque en un centro todo el profesorado comparte IP pública.
 - La sesión es un token firmado con HMAC-SHA256 (`wp_salt('auth')`), en una cookie
   `HttpOnly`, `Secure` y `SameSite=Strict` (esto último corta el CSRF), válida 24 h.
   No se acepta en cabeceras ni se guarda en `localStorage`.
@@ -384,7 +384,7 @@ php tests/auth-test.php
 php tests/informes-ia-test.php
 ```
 
-- **Autenticación** (18 casos): código de un solo uso, bloqueo tras 5 fallos, límite
+- **Autenticación** (20 casos): código de un solo uso, bloqueo tras 5 fallos, límites por email y
   por IP, rechazo de tokens manipulados o en cabecera, cierre de sesión, bajas de
   usuario y HTTPS obligatorio.
 - **Informes de IA** (25 casos): periodos con cambio de año ISO, lista blanca de

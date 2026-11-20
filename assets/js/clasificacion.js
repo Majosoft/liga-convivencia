@@ -242,23 +242,6 @@
         return `<span class="lc-clase-cell">${img}<span>${lcEscapar(clase)}</span></span>`;
     }
 
-    function renderRankingTable(ranking) {
-        const rows = (ranking || []).map((r, i) => `
-            <tr>
-                <td>${i + 1}</td>
-                <td>${claseCell(r.clase, r.escudo_url)}</td>
-                <td>${lcPuntos(r.puntos)}</td>
-            </tr>
-        `).join('');
-        return `
-            <table class="lc-table">
-                <thead>
-                    <tr><th>Posición</th><th>Clase</th><th>Puntos</th></tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>`;
-    }
-
     // Pinta un grupo de sub-pestañas (una por deporte/actividad) dentro de un contenedor ya existente.
     function renderSubBreakdown(tabsEl, panelsEl, items, idPrefix) {
         if (!tabsEl || !panelsEl || !items.length) return;
@@ -299,9 +282,10 @@
             return;
         }
 
+        const pos = lcPosiciones(alumnosData, a => a.puntos);
         tbody.innerHTML = alumnosData.map((a, index) => `
-            <tr>
-                <td>${index + 1}</td>
+            <tr${lcFilaPodio(pos[index])}>
+                <td>${pos[index]}</td>
                 <td>${lcEscapar(a.nombre)}</td>
                 <td>${lcEscapar(a.clase)}</td>
                 <td class="lc-total">${lcPuntos(a.puntos)}</td>
@@ -313,9 +297,10 @@
         const tbody = document.getElementById('lc-general-tbody');
         if (!tbody) return;
         
+        const pos = lcPosiciones(clasificacionData, c => c.total);
         tbody.innerHTML = clasificacionData.map((clase, index) => `
-            <tr>
-                <td>${index + 1}</td>
+            <tr${lcFilaPodio(pos[index])}>
+                <td>${pos[index]}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
                 <td>${lcPuntos(clase.semaforo)}</td>
                 <td>${lcPuntos(clase.deportes)}</td>
@@ -335,9 +320,10 @@
         // Ordenar por puntos de semáforo
         const sorted = [...clasificacionData].sort((a, b) => b.semaforo - a.semaforo);
         
+        const pos = lcPosiciones(sorted, c => c.semaforo);
         tbody.innerHTML = sorted.map((clase, index) => `
-            <tr>
-                <td>${index + 1}</td>
+            <tr${lcFilaPodio(pos[index])}>
+                <td>${pos[index]}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
                 <td>${lcPuntos(clase.semaforo)}</td>
             </tr>
@@ -350,9 +336,10 @@
 
         const sorted = [...clasificacionData].sort((a, b) => (b.extraordinarias ?? 0) - (a.extraordinarias ?? 0));
 
+        const pos = lcPosiciones(sorted, c => c.extraordinarias);
         tbody.innerHTML = sorted.map((clase, index) => `
-            <tr>
-                <td>${index + 1}</td>
+            <tr${lcFilaPodio(pos[index])}>
+                <td>${pos[index]}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
                 <td class="lc-total">${lcPuntos(clase.extraordinarias)}</td>
             </tr>
@@ -365,9 +352,10 @@
 
         const sorted = [...clasificacionData].sort((a, b) => (b.tiempo_aprendizaje ?? 0) - (a.tiempo_aprendizaje ?? 0));
 
+        const pos = lcPosiciones(sorted, c => c.tiempo_aprendizaje);
         tbody.innerHTML = sorted.map((clase, index) => `
-            <tr>
-                <td>${index + 1}</td>
+            <tr${lcFilaPodio(pos[index])}>
+                <td>${pos[index]}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
                 <td class="lc-total">${lcPuntos(clase.tiempo_aprendizaje)}</td>
             </tr>
@@ -381,9 +369,10 @@
         // Ordenar por puntos de partes
         const sorted = [...clasificacionData].sort((a, b) => b.partes - a.partes);
         
+        const pos = lcPosiciones(sorted, c => c.partes);
         tbody.innerHTML = sorted.map((clase, index) => `
-            <tr>
-                <td>${index + 1}</td>
+            <tr${lcFilaPodio(pos[index])}>
+                <td>${pos[index]}</td>
                 <td>${claseCell(clase.clase, clase.escudo_url)}</td>
                 <td>${lcPuntos(clase.partes_positivos)}</td>
                 <td>${lcPuntos(clase.partes_leves)}</td>

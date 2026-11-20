@@ -9,6 +9,7 @@
 define('ABSPATH', __DIR__);
 define('DAY_IN_SECONDS', 86400);
 define('MINUTE_IN_SECONDS', 60);
+define('HOUR_IN_SECONDS', 3600);
 define('COOKIEPATH', '/');
 define('COOKIE_DOMAIN', '');
 
@@ -97,6 +98,14 @@ reiniciar();
 $permitidas = 0;
 for ($i = 0; $i < LC_Auth::IP_MAX + 5; $i++) if (LC_Auth::ip_permitida()) $permitidas++;
 ok($permitidas === LC_Auth::IP_MAX, 'límite de ' . LC_Auth::IP_MAX . ' peticiones por IP');
+
+reiniciar();
+for ($i = 0; $i < LC_Auth::CODIGOS_HORA + 3; $i++) {
+    LC_Auth::solicitar_codigo('profe@centro.edu');
+    unset($GLOBALS['transients']['lc_otp_' . md5('profe@centro.edu')]); // salta la espera de 1 minuto
+}
+ok(count($GLOBALS['correos']) === LC_Auth::CODIGOS_HORA, 'como mucho ' . LC_Auth::CODIGOS_HORA . ' códigos por email y hora');
+ok(LC_Auth::IP_MAX >= 100, 'el límite por IP deja entrar a todo un claustro desde la misma red');
 
 fwrite(STDOUT, "Sesión\n");
 reiniciar();

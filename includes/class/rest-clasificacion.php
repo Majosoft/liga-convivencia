@@ -58,7 +58,10 @@ class LC_REST_Clasificacion {
         // así el widget nunca puede mostrar números distintos a los de la página.
         $r = new \WP_REST_Request('GET', '/liga-creus/v1/clasificacion');
         $r->set_param('periodo', 'general');
-        $datos = self::get_clasificacion($r);
+        $res = self::get_clasificacion($r);
+        // get_clasificacion() devuelve un WP_REST_Response (por la cabecera
+        // no-store): los datos hay que sacarlos de él, no leerlo como array.
+        $datos = $res instanceof \WP_REST_Response ? $res->get_data() : (array) $res;
 
         $html = self::generate_widget_html(
             $datos['clasificacion'] ?? [],
@@ -360,7 +363,7 @@ class LC_REST_Clasificacion {
                 'alumno_id' => (int) $id,
                 'nombre'    => $a['nombre'] ?? 'Alumno eliminado',
                 'clase'     => $a['clase'] ?? '',
-                'puntos'    => round($pts, 2),
+                'puntos'    => (int) round($pts),
             ];
         }
         usort($out, function($x, $y) { return $y['puntos'] <=> $x['puntos']; });
@@ -485,7 +488,7 @@ class LC_REST_Clasificacion {
 
             $ranking = [];
             foreach ($clases as $clase) {
-                $ranking[] = ['clase' => $clase, 'puntos' => $puntos[$clase], 'escudo_url' => $escudos[$clase]];
+                $ranking[] = ['clase' => $clase, 'puntos' => (int) round($puntos[$clase]), 'escudo_url' => $escudos[$clase]];
             }
             usort($ranking, function($a, $b) { return $b['puntos'] <=> $a['puntos']; });
 
@@ -619,7 +622,7 @@ class LC_REST_Clasificacion {
 
             $ranking = [];
             foreach ($clases as $clase) {
-                $ranking[] = ['clase' => $clase, 'puntos' => round($puntos[$clase], 2), 'escudo_url' => $escudos[$clase]];
+                $ranking[] = ['clase' => $clase, 'puntos' => (int) round($puntos[$clase]), 'escudo_url' => $escudos[$clase]];
             }
             usort($ranking, function($a, $b) { return $b['puntos'] <=> $a['puntos']; });
 
@@ -674,13 +677,15 @@ class LC_REST_Clasificacion {
         // Totales finales y orden
         $pts_partes = $pts_partes_cfg; // ya leída al contar los partes
         foreach ($totales as &$t) {
-            $t['deportes'] = round($t['deportes'], 2);
-            $t['biblioteca'] = round($t['biblioteca'], 2);
+            // Puntos enteros en todas las columnas (Biblioteca reparte y deja
+            // decimales) y total = suma de lo que se ve: así el orden, la tabla
+            // pública y los informes de IA usan exactamente el mismo número.
+            $t['deportes'] = (int) round($t['deportes']);
+            $t['biblioteca'] = (int) round($t['biblioteca']);
             $t['partes'] = ($t['partes_positivos'] * $pts_partes['positivo'])
                          + ($t['partes_leves'] * $pts_partes['leve'])
                          + ($t['partes_graves'] * $pts_partes['grave']);
-            // Redondeado: sumar decimales en coma flotante dejaba totales como 524.9200000000001.
-            $t['total'] = round($t['semaforo'] + $t['deportes'] + $t['partes'] + $t['extraordinarias'] + $t['biblioteca'] + $t['tiempo_aprendizaje'], 2);
+            $t['total'] = (int) ($t['semaforo'] + $t['deportes'] + $t['partes'] + $t['extraordinarias'] + $t['biblioteca'] + $t['tiempo_aprendizaje']);
         }
         unset($t);
 
@@ -696,7 +701,8 @@ class LC_REST_Clasificacion {
             // quien suma; nunca puntos negativos junto a un nombre.
             'alumnos' => array_values(array_filter(
                 self::ranking_alumnos($puntos_alumno_global, $alumnos_map),
-                function($a) { return $a['puntos'] > 0; }
+                // Solo quien suma, y solo alumnos que siguen existiendo.
+                function($a) use ($alumnos_map) { return $a['puntos'] > 0 && isset($alumnos_map[$a['alumno_id']]); }
             )),
             // Partes por alumno: solo para el profesorado con acceso completo.
             'alumnos_partes' => $con_partes ? self::ranking_alumnos($puntos_alumno_partes, $alumnos_map) : [],

@@ -75,6 +75,9 @@ class LC_REST_Biblioteca {
         $notas = sanitize_textarea_field($req->get_param('notas'));
 
         $config = LC_Competiciones::get_actividad($actividad);
+        if (!$config) {
+            return new \WP_REST_Response(['ok'=>false,'error'=>'Esa actividad no existe en la configuración'], 400);
+        }
         $modo = $config['modo'] ?? 'participantes';
 
         if ($modo === 'enfrentamiento' || $modo === 'alumnos') {

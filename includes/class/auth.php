@@ -102,7 +102,12 @@ class LC_Auth {
     // ------------------------------------------------------------------
     const CODIGO_TTL = 10 * MINUTE_IN_SECONDS;
     const CODIGO_INTENTOS = 5;
-    const IP_MAX = 20;                         // peticiones de login por IP...
+    const CODIGOS_HORA = 5;                    // códigos por email y hora
+    // Por IP el límite es holgado: en un centro todo el profesorado sale a
+    // internet con la MISMA IP pública, y a primera hora entran muchos a la vez
+    // (cada entrada son 2 peticiones). Lo que frena la fuerza bruta es el
+    // límite por email: 5 códigos/hora x 5 intentos = 25 de 1.000.000 por hora.
+    const IP_MAX = 150;                        // peticiones de login por IP...
     const IP_VENTANA = 15 * MINUTE_IN_SECONDS; // ...en esta ventana
 
     private static function clave_codigo($email) {
@@ -139,6 +144,12 @@ class LC_Auth {
         $clave = self::clave_codigo($email);
         $previo = get_transient($clave);
         if (is_array($previo) && ($previo['enviado'] ?? 0) > time() - MINUTE_IN_SECONDS) return null;
+
+        // Como mucho CODIGOS_HORA códigos por email y hora.
+        $clave_hora = 'lc_otp_n_' . md5($email);
+        $emitidos = (int) get_transient($clave_hora);
+        if ($emitidos >= self::CODIGOS_HORA) return null;
+        set_transient($clave_hora, $emitidos + 1, HOUR_IN_SECONDS);
 
         $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         set_transient($clave, [

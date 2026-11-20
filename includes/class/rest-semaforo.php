@@ -117,6 +117,13 @@ class LC_REST_Semaforo {
      * manual del panel).
      */
     public static function upsert(\WP_REST_Request $req){
+        // Como mucho 30 gomets por clase y semana (6 horas x 5 días); nunca negativos.
+        foreach (['gomets_verdes', 'gomets_amarillos', 'gomets_rojos'] as $campo) {
+            $n = intval($req->get_param($campo));
+            if ($n < 0 || $n > 30) {
+                return new \WP_REST_Response(['ok'=>false,'error'=>'Cada color admite entre 0 y 30 gomets por semana'], 400);
+            }
+        }
         $res = self::guardar_semana(
             sanitize_text_field($req['clase']), intval($req['year']), intval($req['week']),
             intval($req->get_param('gomets_verdes')), intval($req->get_param('gomets_amarillos')), intval($req->get_param('gomets_rojos')),

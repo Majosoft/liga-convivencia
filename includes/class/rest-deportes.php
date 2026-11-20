@@ -87,6 +87,9 @@ class LC_REST_Deportes {
         $notas = sanitize_textarea_field($req->get_param('notas'));
 
         $config = LC_Competiciones::get_deporte($dep);
+        if (!$config) {
+            return new \WP_REST_Response(['ok'=>false,'error'=>'Ese deporte no existe en la configuración'], 400);
+        }
         $modo = $config['modo'] ?? 'enfrentamiento';
 
         if ($modo === 'individual') {

@@ -35,14 +35,14 @@
 .lc-tabs-sub .lc-tab{ font-size: 13px; padding: 8px var(--lc-space-3); }
 
 /* Posiciones del podio */
-.lc-table tbody tr:nth-child(1){ background: var(--lc-color-warning-light); }
-.lc-table tbody tr:nth-child(2){ background: var(--lc-color-neutral-100); }
-.lc-table tbody tr:nth-child(3){ background: #FFF1E6; }
+.lc-table tbody tr.lc-pos-1{ background: var(--lc-color-warning-light); }
+.lc-table tbody tr.lc-pos-2{ background: var(--lc-color-neutral-100); }
+.lc-table tbody tr.lc-pos-3{ background: #FFF1E6; }
 
 .lc-table td:first-child{ font-weight: 800; font-size: 18px; }
-.lc-table tbody tr:nth-child(1) td:first-child::before{ content: "🥇 "; }
-.lc-table tbody tr:nth-child(2) td:first-child::before{ content: "🥈 "; }
-.lc-table tbody tr:nth-child(3) td:first-child::before{ content: "🥉 "; }
+.lc-table tbody tr.lc-pos-1 td:first-child::before{ content: "🥇 "; }
+.lc-table tbody tr.lc-pos-2 td:first-child::before{ content: "🥈 "; }
+.lc-table tbody tr.lc-pos-3 td:first-child::before{ content: "🥉 "; }
 
 /* Columna CLASE: solo el peso tipográfico. La alineación la heredan de
    .lc-table td (centrada) y del propio .lc-clase-cell. */

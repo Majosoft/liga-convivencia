@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Liga Convivencia
  * Description: Login por email de usuarios autorizados + registro de competiciones (Semáforo, Deportes, Partes, Biblioteca, Extraordinarias, Tiempo de Aprendizaje) y clasificación pública.
- * Version: 1.2.1
+ * Version: 1.2.2
  * Author: Majosoft
  */
 
@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) { exit; }
 // Definir constantes del plugin
 define('LC_PATH', plugin_dir_path(__FILE__));
 define('LC_URL', plugin_dir_url(__FILE__));
-define('LC_VERSION', '1.2.1');
+define('LC_VERSION', '1.2.2');
 
 // Cargar archivos necesarios
 require_once LC_PATH . 'includes/helpers.php';
